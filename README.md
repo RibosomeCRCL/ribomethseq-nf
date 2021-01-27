@@ -1,3 +1,3 @@
 # RiboMethSeq-pipe
 
-This is a RiboMethSeq pipeline
+This is a RiboMethSeq pipeline.
