@@ -92,7 +92,8 @@ process fastq_1 {
 
 process trimming {
 	tag '$datasetID'
-	publishDir "$results_path/$datasetID"
+	publishDir "$results_path/$datasetID", pattern : "*.fastq"
+	publishDir "$results_path/trim_logs", pattern : "*.trimmomatic.stats.log"
 	input:
 	set datasetID, file(datasetFile)	 from read_pairs_ch
 	
@@ -125,7 +126,9 @@ process fastq_2 {
 
 process align_bowtie2 {
 	tag '$datasetID'
-	publishDir "$results_path/$datasetID"
+	publishDir "$results_path/$datasetID", pattern : "*.sam"
+	publishDir "$results_path/bowtie2_logs", pattern : "*.bowtie2.stats.log"
+
 	input:
 	set datasetID, file(align_file)	 from trimmed_files
 	output:
