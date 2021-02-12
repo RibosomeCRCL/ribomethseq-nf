@@ -1,0 +1,92 @@
+---
+title: "Ribomethseq pre-analysis"
+output: html_notebook
+---
+
+**Under construction !**
+**Coming soon : a flagging system adapted to Ribomethseq**
+
+This html file gather some informations from the different tools used in the pipeline.
+
+
+# The csv table
+The csv file is exported alongside this html.
+
+```{r}
+library(DT)
+datatable(total_table)
+```
+Below, you will find the explanation for each column:
+
+if the column name starts with a "P", it's a percentage.
+
+From FastQC :
+
+* Filename : (shortened) name of the file
+* Total_sequences : the number of reads inside the file
+* Sequences_flagged_as_poor_quality : FastQC's verdict on the sequences inside the file. 
+* shortest_sequence : length in bp of the shortest_sequence in the file
+* longest_sequence : length in bp of the longest_sequence in the file
+* %GC : percentage of GC inside the reads
+* File type : 
+* Encoding : how the files were encoded
+* Total_deduplicated_percentage : the percentage of deduplicated sequences
+
+From Trimmomatic :
+
+* duplicated_reads : the number of duplicated reads inside this file (check PDuplicated_reads for the percentage of duplicated reads among total reads)
+* Unique_read : the number of unique read (check PUnique_reads for the percentage of unique reads among total reads)
+* Dropped : the number of dropped reads (check PDropped for the percentage of dropped reads among total reads)
+
+# visualization 
+
+## Flagging
+
+**ONLY USED TO ILLUSTRATE HOW WE COULD REPRESENT THE FLAGGING SYSTEM. The critera used here are for a transcriptome and not ribomethseq**
+```{r}
+plotSummary(fdl)
+```
+
+
+## Unique vs duplicated reads for each sample
+
+The following plots show the raw number and percentage of reads that are either unique or duplicated.
+In ribomethseq, it's not a problem to have a lot of duplicated reads. This can be wrongly flagged by FastQC as being problematic.
+
+### Raw
+```{r}
+plotReadTotals(fdl)
+```
+
+### Percentage
+```{r}
+plotReadTotalsPercentage(total_table, "Filename", "PUnique_Reads", "PDuplicated_Reads")
+```
+
+
+## Mean quality of sequence by sample 
+```{r}
+plotSeqQuals(fdl, plotType = "line")
+```
+
+## GC Content
+```{r}
+plotGcContent(fdl, plotType = "line", theoreticalGC = F)
+```
+
+## Overrepresented sequences
+```{r}
+plotOverrep(fdl)
+```
+
+
+## Sequences alignment
+
+The following plots (raw and percentage) show how many reads were successfully (or not) aligned one or multiple times. 
+Unaligned reads are discarded. 
+```{r}
+plotBowtieReport(bowtie_logs)
+plotBowtieReport(bowtie_logs, percentage = T)
+```
+# Coming soon !
+
