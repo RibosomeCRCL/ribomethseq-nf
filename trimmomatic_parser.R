@@ -116,7 +116,6 @@ parseTrimmomaticLogs <- function(data, ...){
   out <- lapply(data, parseTrimmoSingle)
   out <- dplyr::bind_rows(out)
   out$Filename <- names(data)
-  print(out$Filename)
   
   ## Many of the above values may be missing.
   ## Remove them if so using a quick tidy

@@ -65,7 +65,7 @@ process fastq_1 {
 	set datasetID, file(reads_2)	 from read_pairs2_ch
 	
 	output:
-	file '*_fastqc.{zip,html}' into fastqc_1
+	file '*_fastqc.{zip,html}' into fastqc_1, fastqc_12
 		
 	"""
 	fastqc -t 1 $reads_2
@@ -93,13 +93,13 @@ process fastq_1 {
 process trimming {
 	tag '$datasetID'
 	publishDir "$results_path/$datasetID", pattern : "*.fastq"
-	publishDir "$results_path/trim_logs", pattern : "*.trimmomatic.stats.log"
+	publishDir "$results_path/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
 	input:
 	set datasetID, file(datasetFile)	 from read_pairs_ch
 	
 	output:
 	set datasetID, file("${datasetID}.fastq") into trimmed_files,fastq_files_2
-	set datasetID, file("${datasetID}.trimmomatic.stats.log") into (trimmomatic_logs)
+	set datasetID, file("${datasetID}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
 	
     """
     trimmomatic SE -phred33 -threads ${params.trimmomatic_threads} ${datasetFile} ${datasetID}.fastq ILLUMINACLIP:${params.adapters}:2:30:10 LEADING:${params.LEADING} TRAILING:${params.TRAILING} SLIDINGWINDOW:${params.SLIDINGWINDOW} AVGQUAL:${params.AVGQUAL} MINLEN:${params.MINLEN} 2> ${datasetID}.trimmomatic.stats.log
@@ -127,17 +127,17 @@ process fastq_2 {
 process align_bowtie2 {
 	tag '$datasetID'
 	publishDir "$results_path/$datasetID", pattern : "*.sam"
-	publishDir "$results_path/bowtie2_logs", pattern : "*.bowtie2.stats.log"
+	publishDir "$results_path/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
 
 	input:
 	set datasetID, file(align_file)	 from trimmed_files
 	output:
 	set datasetID, file("${datasetID}.sam") into bowtie_files
-	set datasetID, file("${datasetID}.bowtie2.stats.log") into bowtie_logs
+	set datasetID, file("${datasetID}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
 	
 	"""
 	PERL5LIB=$CONDA_PREFIX/lib/5.26.2
-	bowtie2 -x ${params.bowtie_index} ${params.bowtie} $align_file -S ${datasetID}.sam 2> ${datasetID}.bowtie2.stats.log 
+	bowtie2 -x ${params.bowtie_index} ${params.bowtie} $align_file -S ${datasetID}.sam 2>> ${datasetID}.bowtie2.stats.log 
 	"""
 }
 
@@ -147,7 +147,7 @@ process multiqc {
         input:
         file('*') from fastqc_1.collect()
         file('*') from trimmomatic_logs.collect()
-	file('*') from bowtie_logs.collect()
+		file('*') from bowtie_logs.collect()
         output:
         file('multiqc_report.html')
 
@@ -197,6 +197,24 @@ process r_refine {
 	"""
 	Rscript ${params.r_script} $counts5 $counts3 ${params.fasta_58S} ${params.fasta_18S} ${params.fasta_28S} ${params.fasta_5S} ${datasetID}
 	"""
+}
+
+process r_export_run {
+	publishDir "$result_path", mode: 'copy'
+	input:
+	file('*') from fastqc_12.collect()
+	file('*') from trimmomatic_logs2.collect()
+	file('*') from bowtie_logs2.collect()
+	output:
+	file("pipeline_report.html")
+	file("QCtable.csv")
+	file("overrep.fasta")
+	
+	script:
+	"""
+	Rscript r_export.R ${results_path} QCtable.csv
+	"""
+	
 }
 
 
