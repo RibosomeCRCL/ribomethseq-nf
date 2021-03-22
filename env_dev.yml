@@ -1,4 +1,4 @@
-name: ribomethseqDev
+name: ribomethseq3
 channels:
   - conda-forge
   - bioconda
