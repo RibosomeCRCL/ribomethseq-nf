@@ -212,7 +212,7 @@ process r_export_run {
 	
 	script:
 	"""
-	Rscript r_export.R ${install_path} QCtable.csv
+	Rscript ${params.r_export} ${params.install_path} QCtable.csv
 	"""
 	
 }
