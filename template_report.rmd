@@ -132,7 +132,7 @@ datatable(total_table)
 
 
 ```{r add_image, echo=FALSE, fig.cap="How the pipeline works", out.width = '100%'}
-pic_path = paste(input_installDir,"pipeline.png",sep="")
+pic_path = paste(input_installDir,"/pipeline.png",sep="")
 knitr::include_graphics(pic_path)
 ```
 
