@@ -200,7 +200,7 @@ process r_refine {
 }
 
 process r_export_run {
-	publishDir "$result_path", mode: 'copy'
+	publishDir "$results_path", mode: 'copy'
 	input:
 	file('*') from fastqc_12.collect()
 	file('*') from trimmomatic_logs2.collect()
