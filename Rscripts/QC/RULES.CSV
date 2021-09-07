@@ -1,0 +1,5 @@
+"","QC.name","warning.lower","warning.upper","fail.lower","fail.upper","QC.title"
+"1","X.Dropped",0.146878000000001,3.023122,-1,3.742183,"% Dropped (megaribo)"
+"2","X.Unique_Unpaired",64.705306,80.094694,60.857959,83.942041, "% reads aligned one time (megaribo)"
+"3","Per_sequence_quality_scores",27,999,20,999, "Sequence quality Score (FastQC rules)"
+"4","X.Adapter_content",14.645356,47.084644,6.53553400000001,55.194466, "% adapter content (megaribo)"

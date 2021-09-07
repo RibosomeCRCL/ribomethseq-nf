@@ -1,0 +1,30 @@
+name: riboTools
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=conda_forge
+  - _openmp_mutex=4.5=1_gnu
+  - bedtools=2.30.0=h7d7f7ad_2
+  - bzip2=1.0.8=h7f98852_4
+  - c-ares=1.17.2=h7f98852_0
+  - ca-certificates=2021.5.30=ha878542_0
+  - htslib=1.13=h9093b5e_0
+  - krb5=1.19.2=hcc1bbae_0
+  - libcurl=7.78.0=h2574ce0_0
+  - libdeflate=1.7=h7f98852_5
+  - libedit=3.1.20191231=he28a2e2_2
+  - libev=4.33=h516909a_1
+  - libgcc-ng=11.1.0=hc902ee8_8
+  - libgomp=11.1.0=hc902ee8_8
+  - libnghttp2=1.43.0=h812cca2_0
+  - libssh2=1.10.0=ha56f1ee_0
+  - libstdcxx-ng=11.1.0=h56837e0_8
+  - ncurses=6.2=h58526e2_4
+  - openssl=1.1.1l=h7f98852_0
+  - samtools=1.13=h8c37831_0
+  - tk=8.6.11=h27826a3_1
+  - xz=5.2.5=h516909a_1
+  - zlib=1.2.11=h516909a_1010
+prefix: /home/theo/miniconda3/envs/riboTools

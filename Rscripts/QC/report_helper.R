@@ -1,10 +1,9 @@
-
+#' @param table a table containing data for all samples
+#' @param col_sample name of the column containing samples' name
+#' @param col_uniqueReads name of the column containing the percentage of unique reads by sample
+#' @param col_duplicatedReads name of the column containing the percentage of duplicated reads by sample
 plotReadTotalsPercentage <- function(table, col_sample, col_uniqueReads, col_duplicatedReads, sample.order) {
   #' Show the percentage of unique and duplicated reads in a ggplo2 barplot
-  #' @param table a table containing data for all samples
-  #' @param col_sample name of the column containing samples' name
-  #' @param col_uniqueReads name of the column containing the percentage of unique reads by sample
-  #' @param col_duplicatedReads name of the column containing the percentage of duplicated reads by sample
 
   ggplot_table = table[c(col_sample,col_uniqueReads,col_duplicatedReads)]
   colnames(ggplot_table) = c("Filename","Unique Reads","Duplicated Reads")
@@ -33,11 +32,15 @@ plotBowtieReport <- function(bowtie_table, percentage = F, sample.order) {
   
   if(!percentage) {
   p = ggplot(data=bowtie_table, aes_string(x="Filename", y="Total", fill="Type", label = "Total"))+
-    geom_bar( stat="identity") + ylab("Number of reads") + xlab("Sample") + xlim(levels(sample.order))
+    geom_bar( stat="identity") + ylab("Number of reads") + xlab("Sample") + xlim(levels(sample.order))+
+    scale_fill_manual(breaks = c("Multiple Unpaired","Not Aligned","Unique Unpaired"),values = c("#ffcc5c","#ff6f69","#96ceb4")) 
+  
   }
   else {
     p = ggplot(data=bowtie_table, aes_string(x="Filename", y="Total", fill="Type", label = "Total"))+
-      geom_bar( position = "fill", stat="identity")+ ylab("Percentage of reads") + xlab("Sample") + xlim(levels(sample.order))
+      geom_bar( position = "fill", stat="identity")+ ylab("Percentage of reads") + xlab("Sample") + xlim(levels(sample.order))+
+      scale_fill_manual(breaks = c("Multiple Unpaired","Not Aligned","Unique Unpaired"),values = c("#ffcc5c","#ff6f69","#96ceb4")) 
+      
     
   }
   p = p+coord_flip()
@@ -47,6 +50,7 @@ plotBowtieReport <- function(bowtie_table, percentage = F, sample.order) {
 }
 
 plotTrimmomaticDropped <- function(table, percentage = F, sample.order) {
+  #' Bar plots showing the percentage/raw of dropped reads
   Type = c("Surviving","Dropped")
   
   trim_table = table[c("Filename",Type)]
@@ -80,27 +84,29 @@ plotTrimBowtie <- function(d,sample.order) {
   return(p)
 }
 
-plotSummaryNewFlags <- function(table,fdl,sample.order) {
+plotHeatmap <- function(table,...) {
+row_ha = rowAnnotation(Library = table$group)
+Heatmap(total_heatmap,clustering_method_rows = "ward.D",col = viridis::inferno(1000),clustering_distance_rows = "pearson",right_annotation = row_ha,... )
+}
 
-tbl_outlier_tot = FlagDroppedNotAligned(table)
+plotSummaryNewFlags <- function(tbl,sample.order) {
 
-  #Get FastQC's summary and shorten the filenames
-  fastqc_summary = getSummary(fdl)
-  fastqc_summary = fastqc_summary[c("Filename","Category","Status")] 
-  fastqc_summary["Filename"]= lapply(fastqc_summary["Filename"],BeautifyFilename)
-  
-    tbl_outlier_tot = rbind(tbl_outlier_tot, fastqc_summary)
-  
-    # tbl_outlier_tot = tbl_outlier_tot[order(match(tbl_outlier_tot["Filename"],sample.order))]
-    # print(head(tbl_outlier_tot))
+  # #Get FastQC's summary and shorten the filenames
+  # fastqc_summary = getSummary(fdl)
+  # fastqc_summary = fastqc_summary[c("Filename","Category","Status")] 
+  # fastqc_summary["Filename"]= lapply(fastqc_summary["Filename"],BeautifyFilename)
+  # 
+  #   tbl_outlier_tot = rbind(tbl_outlier_tot, fastqc_summary)
+  #   tbl_outlier_tot["outlier"] = "outlier"
+
   #plot our new summary
-  sumPlot <- ggplot(tbl_outlier_tot, aes_string("Category", "Filename", fill = "Status")) +
-    geom_tile(colour = "black", size = 0.5) +
+  sumPlot <- ggplot(tbl, aes_string("Category", "Filename", fill = "Status")) +
+    geom_tile(colour = "black", size = 0.5) + #geom_text(aes(label=outlier))+
     scale_fill_manual(breaks = c("FAIL","WARN","PASS"),values = c("coral","yellow","palegreen")) +
     labs(x = "QC Category", y = "Sample") +
     scale_x_discrete(expand = c(0,0)) +
     scale_y_discrete(expand = c(0,0)) +
-    xlim(c("Adapter Content","Per base sequence content","Per base sequence quality","Per sequence quality scores", "Per base N content","Sequence Length Distribution","Dropped reads","Non-Aligned reads")) +
+    #xlim(c("Adapter Content","Per base sequence content","Per base sequence quality","Per sequence quality scores", "Per base N content","Sequence Length Distribution","Dropped reads","Non-Aligned reads")) +
     ylim(levels(sample.order)) +
     theme_bw() +
     theme(axis.text.x = element_text(

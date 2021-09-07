@@ -40,7 +40,7 @@ parseTrimmomaticLogs <- function(data, ...){
     )
     Min_Len <- ifelse(
       grepl("MINLEN", x[[2]]),
-      gsub(".+MINLEN:([0-9:]+).+", "\\1", x[[2]]),
+      gsub(".*MINLEN:([0-9:]+).+", "\\1", x[[2]]),
       NA
     )
     Max_Info <- ifelse(

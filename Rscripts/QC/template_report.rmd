@@ -1,29 +1,30 @@
 ---
 title: "Ribomethseq QC report"
+date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   rmdformats::downcute
 ---
 
 ```{r, echo=FALSE}
 library(ggpubr)
-knitr::opts_chunk$set(echo=FALSE)
-knitr::opts_chunk$set(message=FALSE)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
-
-
-Date : `r Sys.Date()`
+ 
 
 # Overview
 
 ```{r,fig.height = 10, fig.width = 10, fig.align = "center"}
-  table_sorted = total_table[c("Filename","%Surviving","%Used_reads_for_counting")] 
-  
-  colnames(table_sorted) = c("Sample","% of reads kept by Trimmomatic","% of reads aligned by bowtie2")
-  d <- melt(table_sorted, id.vars="Sample")
-  
-  sample_order = reorder(d$Sample,d$value)
-plotTrimBowtie(d,sample_order)
-plotSummaryNewFlags(total_table,fdl,sample_order)
+table_sorted <- total_table[c("Filename", "%Surviving", "%Used_reads_for_counting")]
+
+colnames(table_sorted) <- c("Sample", "% of reads kept by Trimmomatic", "% of reads aligned by bowtie2")
+d <- melt(table_sorted, id.vars = "Sample")
+
+sample_order <- reorder(d$Sample, d$value)
+plotTrimBowtie(d, sample_order)
+plotSummaryNewFlags(flags_summary, sample_order)
+
+#plotHeatmap()
 ```
 
 # First analysis (before trimmomatic)
@@ -35,7 +36,7 @@ In ribomethseq, it's not uncommon to have a lot of duplicated reads. This can be
 
 ### Raw
 ```{r,fig.height = 10, fig.width = 10, fig.align = "center"}
-plotReadTotals(fdl, xlim=sample_order)
+plotReadTotals(fdl, xlim = sample_order)
 ```
 
 ### Percentage
@@ -98,8 +99,8 @@ Trimmomatic will exclude reads if :
 * 
 
 ```{r trimmomatic_plot}
-plot1 = plotTrimmomaticDropped(total_table, sample.order = sample_order)
-plot2 = plotTrimmomaticDropped(total_table, percentage = T, sample.order = sample_order)
+plot1 <- plotTrimmomaticDropped(total_table, sample.order = sample_order)
+plot2 <- plotTrimmomaticDropped(total_table, percentage = T, sample.order = sample_order)
 ggarrange(plot1, plot2, ncol = 2, common.legend = T)
 ```
 
@@ -112,8 +113,8 @@ The following plots (raw and percentage) show how many reads were successfully (
 Unaligned reads are discarded. 
 
 ```{r aligned_reads}
-plot1 = plotBowtieReport(bowtie_logs, sample.order = sample_order)
-plot2 = plotBowtieReport(bowtie_logs, percentage = T, sample.order = sample_order)
+plot1 <- plotBowtieReport(bowtie_logs, sample.order = sample_order)
+plot2 <- plotBowtieReport(bowtie_logs, percentage = T, sample.order = sample_order)
 ggarrange(plot1, plot2, ncol = 2, common.legend = T)
 ```
 
@@ -125,14 +126,19 @@ You can check each column meaning [here](#table_indepth)
 
 ```{r}
 library(DT)
-datatable(total_table)
+datatable(total_table, class = 'cell-border compact stripe', extensions = 'FixedColumns',
+  options = list(
+    dom = 't',
+    scrollX = TRUE,
+    fixedColumns = list(leftColumns = 2)
+  ))
 ```
 
 ## How the pipeline works
 
 
 ```{r add_image, echo=FALSE, fig.cap="How the pipeline works", out.width = '100%'}
-pic_path = paste(input_installDir,"/pipeline.png",sep="")
+pic_path <- paste(input_installdir, "/Rscripts/QC/pipeline.png", sep = "")
 knitr::include_graphics(pic_path)
 ```
 
@@ -214,12 +220,10 @@ source : https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Anal
 sessionInfo()
 ```
 
-### Trimmomatic
+### Trimmomatic {#trim_parameters}
 
 version:
-```{bash getTrimVersion}
-trimmomatic -version
-```
+
 
 used parameters:
 ```{r}
@@ -230,8 +234,6 @@ datatable(trim_parameters)
 
 ### Bowtie 2
 version:
-```{bash getBowtieVersion}
-bowtie2 --version
-```
+
 
 used parameters:

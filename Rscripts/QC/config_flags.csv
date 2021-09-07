@@ -1,0 +1,5 @@
+flag name,column containing values,condition for warning,condition for fail
+Adapter Content,%Adapter_content,> 15,> 50
+Surviving,%Surviving,< 75,< 10
+Dropped Reads,%Dropped,> 10,> 25
+Non-Aligned Reads,%Not_Aligned,> 25,> 50

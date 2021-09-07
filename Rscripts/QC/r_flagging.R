@@ -2,19 +2,17 @@
 
 ################# GENERIC FUNCTIONS ################# 
 
-GetOutliers <- function(tbl,sample_col,val_col, up_low) {
+GetOutliers <- function(tbl,sample_col,val_col, up_low, threshold) {
   
   #the list cannot be coerced to type "double". So we unlist first
   tbl_val_unlisted = as.numeric(unlist(tbl[val_col]))
   
-  #calcultate IQR
-  tbl_IQR = IQR(tbl_val_unlisted)
-  tbl_Q1 = quantile(tbl_val_unlisted,1/4)
-  tbl_Q3 = quantile(tbl_val_unlisted,3/4)
+  tbl_median = median(tbl_val_unlisted)
+  tbl_mad <- threshold*mad(tbl_val_unlisted)
+  tbl_UB = tbl_median + tbl_mad
+  tbl_LB = tbl_median - tbl_mad
   
-  #calcultate upper and lower bounds
-  tbl_LB = (tbl_Q1 - 1.5 * tbl_IQR)
-  tbl_UB = (tbl_Q3 + 1.5 * tbl_IQR)
+
   
   #We flag with "FAIL" outliers...
   #...above upper bound
@@ -33,8 +31,8 @@ GetOutliers <- function(tbl,sample_col,val_col, up_low) {
                         "Lower" = tbl_outliers_LB_name,
                         "Both"  = c(tbl_outliers_LB_name,tbl_outliers_UB_name)
   )
- 
-  tbl = tbl[c("Filename",col_to_keep)]
+  tbl["is_outlier"] = tbl[tbl_outliers_UB_name] + tbl[tbl_outliers_LB_name] >= 1
+  tbl = tbl[c("Filename",col_to_keep,"is_outlier")]
   
   return(tbl)
 }
@@ -51,6 +49,75 @@ tbl[tbl=="FALSE"] = "PASS"
 
 }
 
+
+FlagByValue <- function(tbl,flag_name,sample_col,val_col,warning_condition,fail_condition) {
+  
+  tbl_vals = as.vector(unlist(tbl[val_col]))
+  warning_condition = eval(parse(text = paste("function(x) x", warning_condition)))
+  fail_condition = eval(parse(text = paste("function(x) x", fail_condition)))
+  
+  tbl["warning"] = warning_condition(tbl_vals)
+  tbl["fail"] = fail_condition(tbl_vals)
+  tbl[flag_name] = "PASS"
+  tbl[flag_name][tbl["warning"] == T] = "WARN"
+  tbl[flag_name][tbl["fail"] == T] = "FAIL"
+  
+  tbl = tbl[,c("Filename",flag_name)]
+  
+  Category = flag_name
+  tbl_output = tidyr::gather(tbl, key = Category, value ="Status", one_of(Category))
+  return(tbl_output)
+  
+  # Example call : Check if the number of unpaired reads is either under 30000000 (=Warning) or 15000000 (=Fail)
+  # FlagByValue(total_table,"Per sequence test","Filename","Unique_Unpaired",function(x) x<30000000, function(x) x<15000000)
+  
+  # Example output
+#  Filename     Category            Status
+#        1     Per sequence test     FAIL
+#       10     Per sequence test   WARNING
+#       12     Per sequence test   WARNING
+#        2     Per sequence test     FAIL
+}
+
+FlagByMAD <- function(tbl,flag_name,sample_col,val_col,rule_tbl) {
+  write.csv(rule_tbl,"rules.csv")
+  message(paste("calling flagbymad.", val_col))
+  tmp_tbl <- data.frame(filename <-  tbl[sample_col],val_col= tbl[val_col] )
+
+  warning.lower = rule_tbl[which(rule_tbl["QC.name"] == val_col),"warning.lower"]
+  warning.upper = rule_tbl[which(rule_tbl["QC.name"] == val_col),"warning.upper"]
+  
+  fail.lower = rule_tbl[which(rule_tbl["QC.name"] == val_col),"fail.lower"]
+  fail.upper = rule_tbl[which(rule_tbl["QC.name"] == val_col),"fail.upper"]
+  
+  
+  
+  message("rules loaded")
+  tmp_tbl["is.warning"] <- lapply(tmp_tbl[val_col], function(x) x <= as.numeric(warning.lower) | x  >= as.numeric(warning.upper))
+  tmp_tbl["is.fail"] = lapply(tmp_tbl[val_col], function(x) x <= as.numeric(fail.lower) | x  >= as.numeric(fail.upper))
+  message("tests done")
+  tmp_tbl[flag_name] = "PASS"
+  tmp_tbl[flag_name][tmp_tbl["is.warning"] == T] = "WARN"
+  tmp_tbl[flag_name][tmp_tbl["is.fail"] == T] = "FAIL"
+
+  tmp_tbl <- tmp_tbl[,c("Filename",flag_name)]
+
+  
+  Category <- flag_name
+  tbl_output <- tidyr::gather(tmp_tbl, key = Category, value ="Status", one_of(Category))
+
+  return(tbl_output)
+  
+  # Example call : Check if the number of unpaired reads is either under 30000000 (=Warning) or 15000000 (=Fail)
+  # FlagByValue(total_table,"Per sequence test","Filename","Unique_Unpaired",function(x) x<30000000, function(x) x<15000000)
+  
+  # Example output
+  #  Filename     Category            Status
+  #        1     Per sequence test     FAIL
+  #       10     Per sequence test   WARNING
+  #       12     Per sequence test   WARNING
+  #        2     Per sequence test     FAIL
+}
 
 ################# FLAGS ################# 
 
@@ -108,6 +175,16 @@ FlagDroppedNotAligned <-  function(tbl, fail.trimmomatic = 25, fail.bowtie = 25)
   # RNA-4   Non-Aligned reads     PASS
   
 }
+
+GenerateFlags <- function(tbl, config_table_path) {
+  flags_file = read.csv(config_table_path,sep = ",")
+  flag_list = list()
+  for(row in 1:nrow(flags_file))  {
+   flag_list[[row]] = FlagByMAD(tbl,sample_col = "Filename",val_col = flags_file[row,"QC.name"],rule_tbl = flags_file,flag_name = flags_file[row,"QC.title"])
+  }
+  return(flag_list)
+}
+
 
 
 
