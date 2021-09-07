@@ -4,6 +4,7 @@ library(reshape2)
 library(rmdformats)
 library(dplyr)
 library(ComplexHeatmap)
+library(tidyr)
 #library(viridis)
 
 args <- commandArgs(trailing = TRUE)
@@ -151,10 +152,12 @@ total_table_corrected = total_table
 colnames(total_table_corrected) = make.names(colnames(total_table_corrected))
 flags_summary_list <- GenerateFlags(total_table_corrected,paste(input_installdir,"/Rscripts/QC/RULES.CSV",sep = ""))
 flags_summary <- as.data.frame(bind_rows(flags_summary_list))
+flags_summary_spread <- spread(flags_summary,"Category","Status")
 
 tbl_test = GetOutliers(tbl = total_table,sample_col = "Filename",val_col = "Surviving",up_low = "Lower",threshold = 2)
 write.csv(tbl_test,"outlier.csv")
 ############ export data ############
+total_table <- merge(total_table,flags_summary_spread,by = "Filename")
 write.csv(total_table, file = paste(input_datadir,"/QCtable.csv",sep = ""))
 fdl <- FastqcDataList(fdl)
 fqName(fdl) <- BeautifyFilename(fqName(fdl))
