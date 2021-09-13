@@ -91,7 +91,7 @@ process fastq_1 {
  */
 
 process trimming {
-	tag '$datasetID'
+	tag "$datasetID"
 	publishDir "$results_path/$datasetID", pattern : "*.fastq"
 	publishDir "$results_path/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
 	input:
@@ -107,7 +107,7 @@ process trimming {
 }
 
 process fastq_2 {
-	tag '$datasetID'
+	tag "$datasetID"
 	publishDir "$results_path/fastqc_after"
 	input:
 	set datasetID, file(reads_qc)	 from fastq_files_2
@@ -125,7 +125,7 @@ process fastq_2 {
 
 
 process align_bowtie2 {
-	tag '$datasetID'
+	tag "$datasetID"
 	publishDir "$results_path/$datasetID", pattern : "*.sam"
 	publishDir "$results_path/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
 
@@ -142,7 +142,7 @@ process align_bowtie2 {
 }
 
 process multiqc {
-	tag '$datasetID'
+	tag "$datasetID"
         publishDir "$results_path", mode: 'copy'
         input:
         file('*') from fastqc_1.collect()
@@ -157,6 +157,7 @@ process multiqc {
 }
 
 process count5 {
+	tag "$datasetID"
 	publishDir "$results_path/$datasetID", mode:'copy'
 	input:
 	set datasetID, file(aligned_sam) from bowtie_files
@@ -183,6 +184,7 @@ process count5 {
 
 
 process r_refine {
+	tag "$datasetID"
 	publishDir "$results_path/$datasetID", mode: 'copy'
 	input:
 	set datasetID, file(counts3) from counts_3_end
@@ -200,6 +202,7 @@ process r_refine {
 }
 
 process r_export_run {
+	tag "$datasetID"
 	publishDir "$results_path", mode: 'copy'
 	input:
 	file('*') from fastqc_12.collect()
@@ -212,7 +215,7 @@ process r_export_run {
 	
 	script:
 	"""
-	Rscript ${params.r_export} ${params.install_path} QCtable.csv
+	Rscript ${params.r_export} ${params.install_path} .
 	"""
 	
 }
