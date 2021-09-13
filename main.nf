@@ -59,6 +59,7 @@ if(results_path == '') {
  */
 
 process fastq_1 {
+	conda params.conda + "riboFastQ/"
 	tag "$dataset_id"
 	publishDir "$results_path/fastqc_before"
 	input:
@@ -91,6 +92,7 @@ process fastq_1 {
  */
 
 process trimming {
+	conda params.conda + "riboTrimm/"
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", pattern : "*.fastq"
 	publishDir "$results_path/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
@@ -107,6 +109,7 @@ process trimming {
 }
 
 process fastq_2 {
+	conda params.conda + "riboFastQ/"
 	tag "$datasetID"
 	publishDir "$results_path/fastqc_after"
 	input:
@@ -125,6 +128,7 @@ process fastq_2 {
 
 
 process align_bowtie2 {
+	conda params.conda + "riboBowtie2/"
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", pattern : "*.sam"
 	publishDir "$results_path/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
@@ -142,6 +146,7 @@ process align_bowtie2 {
 }
 
 process multiqc {
+	conda params.conda + "riboMultiQC/"
 	tag "$datasetID"
         publishDir "$results_path", mode: 'copy'
         input:
@@ -157,6 +162,7 @@ process multiqc {
 }
 
 process count5 {
+	conda params.conda + "riboTools/"
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", mode:'copy'
 	input:
@@ -202,6 +208,7 @@ process r_refine {
 }
 
 process r_export_run {
+	conda params.conda + "riboQC/"
 	tag "$datasetID"
 	publishDir "$results_path", mode: 'copy'
 	input:
