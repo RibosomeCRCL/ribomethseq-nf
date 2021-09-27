@@ -1,0 +1,6 @@
+name: riboR
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+prefix: /home/theo/miniconda3/envs/riboR

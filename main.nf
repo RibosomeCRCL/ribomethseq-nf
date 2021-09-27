@@ -140,7 +140,7 @@ process align_bowtie2 {
 	set datasetID, file("${datasetID}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
 	
 	"""
-	PERL5LIB=$CONDA_PREFIX/lib/5.26.2
+	PERL5LIB=${params.conda_riboBowtie2}lib/5.26.2/
 	bowtie2 -x ${params.bowtie_index} ${params.bowtie} $align_file -S ${datasetID}.sam 2>> ${datasetID}.bowtie2.stats.log 
 	"""
 }
