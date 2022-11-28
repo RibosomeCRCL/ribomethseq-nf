@@ -20,12 +20,13 @@ log.info """\
 	nextflow run main.nf --results_path 'path/to/results_directory' --dir '/path/to/fastq/files/*.gz' -profile {human or mouse}
  Mandatory arguments:
  	--results_path: 		path to where the results will be saved
-	--dir				path of the sequenced fastq files
-	-profile			human or mouse profile
+	--dir					path of the sequenced fastq files
+	-profile				human or mouse profile
+	
  directory: ${params.dir}
  index        : ${params.bowtie_index}
- profile       : ${workflow.profile}
- result_path	: ${params.results_path}
+ profile      : ${workflow.profile}
+ result_path  : ${params.results_path}
  """
  
  
@@ -59,7 +60,6 @@ if(results_path == '') {
  */
 
 process fastq_1 {
-	conda params.conda_riboFastQ
 	tag "$datasetID"
 	publishDir "$results_path/fastqc_before"
 	input:
@@ -74,25 +74,7 @@ process fastq_1 {
 }
 
 
-
-/*
- * trimmomatic: trim and crop Illumina (FASTQ) data and remove adapters
- * SE: signle end
- * phred33 : the base quality encoding
- * threads: indicates the number of threads to use
- * ILLUMINACLIP: <fastaWithAdaptersEtc: specifies the path to a fasta file containing all the Illumina adapters>:
- * < seedMismatches: specifies the maximum mismatch count which will still allow a full match to be performed>:
- * < palindromeClipThreshold: specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment>:
- * < simpleClipThreshold: specifies how accurate the match between any adapter etc. sequence must be against a read.>
- * LEADING:<quality> Remove low quality bases from the beginning.
- * TRAILING:<quality> Remove low quality bases from the end
- * SLIDINGWINDOW:<windowSize>:<requiredQuality> Perform a sliding window trimming, cutting once the average quality within the window falls below a threshold.
- * AVGQUAL: Drop the read if the average quality is below the specified level
- * MINLEN:<length> This module removes reads that fall below the specified minimal length.
- */
-
 process trimming {
-	conda params.conda_riboTrimm
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", pattern : "*.fastq"
 	publishDir "$results_path/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
@@ -109,7 +91,6 @@ process trimming {
 }
 
 process fastq_2 {
-	conda params.conda_riboFastQ
 	tag "$datasetID"
 	publishDir "$results_path/fastqc_after"
 	input:
@@ -128,7 +109,6 @@ process fastq_2 {
 
 
 process align_bowtie2 {
-	conda params.conda_riboBowtie2
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", pattern : "*.sam"
 	publishDir "$results_path/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
@@ -140,13 +120,12 @@ process align_bowtie2 {
 	set datasetID, file("${datasetID}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
 	
 	"""
-	PERL5LIB=${params.conda_riboBowtie2}lib/5.26.2/
+	# PERL5LIB="/opt/conda/lib/5.34.0"
 	bowtie2 -x ${params.bowtie_index} ${params.bowtie} $align_file -S ${datasetID}.sam 2>> ${datasetID}.bowtie2.stats.log 
 	"""
 }
 
 process multiqc {
-	conda params.conda_riboMultiQC
 	tag "$datasetID"
         publishDir "$results_path", mode: 'copy'
         input:
@@ -162,7 +141,6 @@ process multiqc {
 }
 
 process count5 {
-	conda params.conda_riboTools
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", mode:'copy'
 	input:
@@ -190,7 +168,6 @@ process count5 {
 
 
 process r_refine {
-	conda params.conda_riboR
 	tag "$datasetID"
 	publishDir "$results_path/$datasetID", mode: 'copy'
 	input:
@@ -209,7 +186,6 @@ process r_refine {
 }
 
 process r_export_run {
-	conda params.conda_riboQC
 	tag "$datasetID"
 	publishDir "$results_path", mode: 'copy'
 	input:
@@ -223,7 +199,7 @@ process r_export_run {
 	
 	script:
 	"""
-	Rscript ${params.r_export} ${params.install_path} .
+	Rscript ${params.r_export} $baseDir .
 	"""
 	
 }

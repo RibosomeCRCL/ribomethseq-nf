@@ -135,7 +135,7 @@ print("Bowtie logs have been successfully imported")
 base_table["Filename"] <- lapply(base_table["Filename"], sub, pattern = "_.*", replacement = "")
 bowtie_logs["Filename"] <- lapply(bowtie_logs["Filename"], sub, pattern = "[.].*", replacement = "")
 
-if (!is.na(trim_logs)) {
+if (length(trim_logs) > 1) {
   trim_logs["Filename"] <- lapply(trim_logs["Filename"], sub, pattern = "[.].*", replacement = "")
   total_table <- merge(base_table, trim_logs, by = "Filename")
 }
