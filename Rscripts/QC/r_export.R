@@ -5,11 +5,11 @@ library(rmdformats)
 library(dplyr)
 library(ComplexHeatmap)
 library(tidyr)
-#library(viridis)
+# library(viridis)
 
 args <- commandArgs(trailing = TRUE)
 input_installdir <- as.character(args[1]) # directory where this script and its dependencies are installed
-input_datadir <-  as.character(args[2]) # directory where the QC files are
+input_datadir <- as.character(args[2]) # directory where the QC files are
 message(paste("installation directory :", input_installdir))
 message(paste("data directory :", input_datadir))
 
@@ -44,31 +44,27 @@ base_table["Unique_Reads"] <- base_table["Total_Sequences"] - base_table["Duplic
 base_table["%Duplicated_Reads"] <- round(base_table["Duplicated_Reads"] / base_table["Total_Sequences"] * 100, n_decimals)
 base_table["%Unique_Reads"] <- round(base_table["Unique_Reads"] / base_table["Total_Sequences"] * 100, n_decimals)
 
-#Adapter content
-base_table["%Adapter_content"] = NA
-adapter_content = getModule(fdl,"Adapter_Content")
-write.csv(adapter_content,file = paste(input_datadir, "/adapter.csv", sep = "") )
-adapter_content["Filename"] = as.factor(adapter_content$Filename)
-for(sample_adapter in levels(adapter_content$Filename)) {
-  adapter_by_sample = adapter_content[which(adapter_content["Filename"] == sample_adapter),]
-  adapter_by_sample = tail(adapter_by_sample,1)
-  base_table["%Adapter_content"][base_table["Filename"] == sample_adapter] = round(sum(adapter_by_sample[,3:7]),n_decimals)
-    
-                                          
+# Adapter content
+base_table["%Adapter_content"] <- NA
+adapter_content <- getModule(fdl, "Adapter_Content")
+write.csv(adapter_content, file = paste(input_datadir, "/adapter.csv", sep = ""))
+adapter_content["Filename"] <- as.factor(adapter_content$Filename)
+for (sample_adapter in levels(adapter_content$Filename)) {
+  adapter_by_sample <- adapter_content[which(adapter_content["Filename"] == sample_adapter), ]
+  adapter_by_sample <- tail(adapter_by_sample, 1)
+  base_table["%Adapter_content"][base_table["Filename"] == sample_adapter] <- round(sum(adapter_by_sample[, 3:7]), n_decimals)
 }
 
 
 
-sequence_quality_scores = getModule(fdl,"Per_sequence_quality_scores")
-base_table["Per_sequence_quality_scores"] = NA
+sequence_quality_scores <- getModule(fdl, "Per_sequence_quality_scores")
+base_table["Per_sequence_quality_scores"] <- NA
 for (sample_sq in levels(as.factor(sequence_quality_scores$Filename))) {
-  sq_bySample = sequence_quality_scores[which(sequence_quality_scores["Filename"] == sample_sq),]
-  
-  quality_maxCount = sq_bySample$Quality[which(sq_bySample$Count == max(sq_bySample$Count))]
-  
-  base_table["Per_sequence_quality_scores"][base_table["Filename"] == sample_sq] = quality_maxCount
-  
-  
+  sq_bySample <- sequence_quality_scores[which(sequence_quality_scores["Filename"] == sample_sq), ]
+
+  quality_maxCount <- sq_bySample$Quality[which(sq_bySample$Count == max(sq_bySample$Count))]
+
+  base_table["Per_sequence_quality_scores"][base_table["Filename"] == sample_sq] <- quality_maxCount
 }
 
 ############ TRIMMOMATIC ############
@@ -80,7 +76,8 @@ data_trimmomatic <- suppressWarnings(lapply(trim_logs_list, readLines)) # load a
 names(data_trimmomatic) <- basename(trim_logs_list)
 
 # The parser can easily fail if the logs have not a correct structure
-trim_logs <- tryCatch({
+trim_logs <- tryCatch(
+  {
     trim_logs <- parseTrimmomaticLogs(data_trimmomatic)
     # Inside trim_logs, we have user-specified parameters used by trimmomatic. We will keep them in trim_parameters
     trim_parameters <- t(trim_logs[1, -c(1:9)])
@@ -142,25 +139,25 @@ if (length(trim_logs) > 1) {
 
 total_table <- merge(total_table, bowtie_logs, by = "Filename")
 
-total_table["%Used_reads_for_counting"] <- round(total_table["Unique_Unpaired"]/ total_table["Total_Sequences"] * 100, n_decimals)
+total_table["%Used_reads_for_counting"] <- round(total_table["Unique_Unpaired"] / total_table["Total_Sequences"] * 100, n_decimals)
 
 ggplot_total_table <- total_table
 colnames(ggplot_total_table) <- gsub("%", "P", colnames(ggplot_total_table))
 
 ############ Generate flags ############
-total_table_corrected = total_table
-colnames(total_table_corrected) = make.names(colnames(total_table_corrected))
-flags_summary_list <- GenerateFlags(total_table_corrected,paste(input_installdir,"/Rscripts/QC/RULES.CSV",sep = ""))
+total_table_corrected <- total_table
+colnames(total_table_corrected) <- make.names(colnames(total_table_corrected))
+flags_summary_list <- GenerateFlags(total_table_corrected, paste(input_installdir, "/Rscripts/QC/RULES.CSV", sep = ""))
 flags_summary <- as.data.frame(bind_rows(flags_summary_list))
-flags_summary_spread <- spread(flags_summary,"Category","Status")
+flags_summary_spread <- spread(flags_summary, "Category", "Status")
 
-tbl_test = GetOutliers(tbl = total_table,sample_col = "Filename",val_col = "Surviving",up_low = "Lower",threshold = 2)
-write.csv(tbl_test,"outlier.csv")
+tbl_test <- GetOutliers(tbl = total_table, sample_col = "Filename", val_col = "Surviving", up_low = "Lower", threshold = 2)
+write.csv(tbl_test, "outlier.csv")
 ############ export data ############
-total_table <- merge(total_table,flags_summary_spread,by = "Filename")
-write.csv(total_table, file = paste(input_datadir,"/QCtable.csv",sep = ""))
+total_table <- merge(total_table, flags_summary_spread, by = "Filename")
+write.csv(total_table, file = paste(input_datadir, "/QCtable.csv", sep = ""))
 fdl <- FastqcDataList(fdl)
 fqName(fdl) <- BeautifyFilename(fqName(fdl))
 overRep2Fasta(fdl, n = 20, path = "overrep.fasta")
-working_directory = getwd()
+working_directory <- getwd()
 rmarkdown::render(paste(input_installdir, "/Rscripts/QC/template_report.rmd", sep = ""), output_file = paste(working_directory, "/pipeline_report.html", sep = ""))
