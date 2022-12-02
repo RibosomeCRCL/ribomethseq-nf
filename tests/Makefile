@@ -1,7 +1,7 @@
 
 RESDIR = ribomethseq
 
-QSIZE = 4
+QSIZE = 6
 FQDIR = fastq
 FQ_PATTERN = '_R1_001.fastq.gz'
 PROFILE = human
