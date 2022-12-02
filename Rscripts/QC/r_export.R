@@ -8,8 +8,9 @@ library(tidyr)
 # library(viridis)
 
 args <- commandArgs(trailing = TRUE)
+current_wd <- getwd() # get the temp directory assigned by nextflow
 input_installdir <- as.character(args[1]) # directory where this script and its dependencies are installed
-input_datadir <- as.character(args[2]) # directory where the QC files are
+input_datadir <- current_wd # directory where the QC files are
 message(paste("installation directory :", input_installdir))
 message(paste("data directory :", input_datadir))
 
@@ -18,9 +19,6 @@ source(paste(input_installdir, "/Rscripts/QC/report_helper.R", sep = ""))
 source(paste(input_installdir, "/Rscripts/QC/r_flagging.R", sep = ""))
 
 n_decimals <- 2 # number of decimals
-
-current_wd <- getwd() # get the temp directory assigned by nextflow
-print(current_wd)
 
 ###################### SELECTED COLUMNS FOR THE FINAL TABLE ######################
 
@@ -83,7 +81,7 @@ trim_logs <- tryCatch(
     trim_parameters <- t(trim_logs[1, -c(1:9)])
     trim_parameters[is.na(trim_parameters)] <- "Not specified"
 
-    print("Trimmomatic logs have been successfully imported")
+    print(paste("Trimmomatic logs have been successfully imported, number of logs :",length(trim_logs_list)))
 
     trim_logs <- trim_logs[, colSums(is.na(trim_logs)) != nrow(trim_logs)]
     trim_logs["%Dropped"] <- trim_logs["Dropped"] / trim_logs["Input_Reads"] * 100
@@ -117,19 +115,17 @@ trim_logs <- tryCatch(
 bowtie_logs_list <- list.files(path = input_datadir, pattern = "*.bowtie2.stats.log", full.names = T, recursive = T)
 
 bowtie_logs <- importNgsLogs(bowtie_logs_list, type = "bowtie2")
-print("bowtie logs have been successfully imported!")
 bowtie_logs["Alignment_Rate"] <- round(bowtie_logs["Alignment_Rate"] * 100, n_decimals)
 bowtie_logs["%Unique_Unpaired"] <- round(bowtie_logs["Unique_Unpaired"] / bowtie_logs["Total_Reads"] * 100, n_decimals)
 bowtie_logs["%Multiple_Unpaired"] <- round(bowtie_logs["Multiple_Unpaired"] / bowtie_logs["Total_Reads"] * 100, n_decimals)
 bowtie_logs["%Not_Aligned"] <- round(bowtie_logs["Not_Aligned"] / bowtie_logs["Total_Reads"] * 100, n_decimals) # P of reads not aligned
 bowtie_logs <- bowtie_logs[bowtie_selected_columns]
-
-print("Bowtie logs have been successfully imported")
+print(paste("Bowtie logs have been successfully imported, number of logs :",length(bowtie_logs_list)))
 
 ############ combine data ############
 
 # first, we rename the filename and then with merge the tables
-base_table["Filename"] <- lapply(base_table["Filename"], sub, pattern = "_.*", replacement = "")
+base_table["Filename"] <- lapply(base_table["Filename"], sub, pattern = "[.].*", replacement = "")
 bowtie_logs["Filename"] <- lapply(bowtie_logs["Filename"], sub, pattern = "[.].*", replacement = "")
 
 if (length(trim_logs) > 1) {
