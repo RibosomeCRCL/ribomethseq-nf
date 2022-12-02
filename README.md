@@ -12,16 +12,21 @@ RiboMethSeq data processing. It generates counts and quality control data.
 The following software program/packages are required to run this pipeline.
 
   - [nextflow](https://www.nextflow.io)
+  - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+  - [samtools](https://github.com/samtools/samtools)
+  - [bedtools](https://github.com/arq5x/bedtools2)
+  - [Trimmomatic](https://github.com/usadellab/Trimmomatic)
+  - [FastQC](https://github.com/s-andrews/FastQC)
+  - [MultiQC](https://github.com/ewels/MultiQC)
   - [R](https://cran.r-project.org) and the following libraries :
     + reshape2
     + dplyr
     + tidyr
     + rmdformats
+    + rmarkdown
     + ngsReports
     + ComplexHeatmap
-  - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-  - [samtools](https://github.com/samtools/samtools)
-  - [bedtools](https://github.com/arq5x/bedtools2)
+
 
 If you do not want to install them manually, you can use either docker/singularity
 or conda to build the required environment (see next section)
