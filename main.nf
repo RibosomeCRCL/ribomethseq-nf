@@ -275,7 +275,7 @@ process r_refine {
 
 	script:
 	"""
-	Rscript ${params.r_refine} ${counts5} ${counts3} \\
+	Rscript $baseDir/Rscripts/Refine/r_refine.R ${counts5} ${counts3} \\
 	${params.fasta_58S} ${params.fasta_18S} ${params.fasta_28S} ${params.fasta_5S} \\
 	${datasetID}
 	"""
@@ -298,7 +298,7 @@ process r_export {
 
 	script:
 	"""
-	Rscript ${params.r_export} $baseDir .
+	Rscript $baseDir/Rscripts/QC/r_export.R $baseDir .
 	"""
 }
 
