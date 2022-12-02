@@ -10,8 +10,8 @@
 
 The following software program/packages are required to run this pipeline.
 
-  - [nextflow](https://www.nextflow.io/)
-  - [R](cran.r-project.org) and the following libraries :
+  - [nextflow](https://www.nextflow.io)
+  - [R](https://cran.r-project.org) and the following libraries :
     + reshape2
     + dplyr
     + tidyr
