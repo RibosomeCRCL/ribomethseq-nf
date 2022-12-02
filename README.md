@@ -1,6 +1,7 @@
 # ribomethseq-nf workflow
 
-`ribomethseq-nf` is a [nextflow](https://www.nextflow.io/) pipeline dedicated to RiboMethSeq data processing. It generates counts and quality control data.
+`ribomethseq-nf` is a [nextflow](https://www.nextflow.io/) pipeline dedicated to
+RiboMethSeq data processing. It generates counts and quality control data.
 
 ### Versions
 
@@ -38,8 +39,8 @@ git clone https://github.com/EpiRnaTools/ribomethseq-nf
 Perhaps the easiest way to have a proper environment to run the pipeline is to
 use conda. A yaml file is provided here : `docker/conda.yml`
 
-You can either directly use the `conda` profile provided in `nextflow.config`
-and the workflow will automatically build the environment on the workflow
+You can either directly use the conda   profile provided in `nextflow.config`
+and the workflow will automatically build the environment at workflow
 initiation or you can build it in advance with for instance the following
 command:
 
@@ -69,7 +70,7 @@ To build the docker image :
 
 ```sh
 cd docker
-docker build -t  ribomethseq-nf:1.0 .
+docker build -t ribomethseq-nf:1.0 .
 ```
 
 If you need to mount specific path(s) of your infrastructure, adapt the docker
@@ -188,3 +189,7 @@ it through the `--bowtie_index` parameter.
 --logdir             DIR    Log directory                              Optional ($outdir)
 --help               FLAG   Displays this help
 ```
+
+## Output files
+
+**TODO Theo**
