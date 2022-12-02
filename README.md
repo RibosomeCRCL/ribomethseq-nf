@@ -112,7 +112,7 @@ nextflow run /path/to/ribomethseq-nf -profile human,docker \
 
 ### Run the workflow for mouse data with conda
 ```sh
-nextflow run /path/to/ribomethseq-nf -profile human,conda \
+nextflow run /path/to/ribomethseq-nf -profile mouse,conda \
     --fqdir $FastqDir \
     --outdir $OutDir
 ```
