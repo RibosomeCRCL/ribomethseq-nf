@@ -49,10 +49,6 @@ params.threads       = 3
 // bowtie
 params.bowtie_opts = "--sensitive -L 17"
 
-// r utils
-r_refine = "$baseDir/Rscripts/Refine/r_refine.R"
-r_export = "$baseDir/Rscripts/QC/r_export.R"
-
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                              INPUT PARAMETERS CHECK
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
