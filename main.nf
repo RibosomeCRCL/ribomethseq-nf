@@ -33,7 +33,7 @@ log.info ""
  */
 
 params.fqdir         = null
-params.fastq_pattern = 'fastq.gz'
+params.fastq_pattern = '.fastq.gz'
 
 params.help          = false
 
@@ -91,8 +91,9 @@ log.info "Trimmomatic SLIDINGWINDOW        : ${params.slidingwindow}"
 log.info "Trimmomatic AVGQUAL              : ${params.avgqual}"
 log.info "Trimmomatic MINLEN               : ${params.minlen}"
 log.info "Bowtie options                   : ${params.bowtie_opts}"
-log.info "Threads for fastqc               : ${params.fastqc_threads}"
+log.info "Bowtie index                     : ${params.bowtie_index}"
 log.info "Threads for bowtie               : ${params.bowtie_threads}"
+log.info "Threads for fastqc               : ${params.fastqc_threads}"
 log.info "Threads for trimmomatic          : ${params.trimmo_threads}"
 log.info "Threads for samtools             : ${params.samtools_threads}"
 log.info "Log directory                    : ${logdir}"
@@ -274,7 +275,9 @@ process r_refine {
 
 	script:
 	"""
-	Rscript ${params.r_refine} $counts5 $counts3 ${params.fasta_58S} ${params.fasta_18S} ${params.fasta_28S} ${params.fasta_5S} ${datasetID}
+	Rscript ${params.r_refine} ${counts5} ${counts3} \\
+	${params.fasta_58S} ${params.fasta_18S} ${params.fasta_28S} ${params.fasta_5S} \\
+	${datasetID}
 	"""
 }
 
@@ -311,13 +314,29 @@ def exitMessage(msg) {
 
 def helpMessage() {
 	log.info ""
-	log.info "                       +++++++++++++++++++++++++"
-	log.info "                       +  ribomethseq-nf help  +"
-	log.info "                       +++++++++++++++++++++++++"
+	log.info "                           +++++++++++++++++++++++++"
+	log.info "                           +  ribomethseq-nf help  +"
+	log.info "                           +++++++++++++++++++++++++"
 	log.info ""
 	log.info "--fqdir              DIR    Fastq files location                       Required"
-	log.info "--fastq_pattern      STR    Pattern for fastq file selection           Optional (.bam)"
-
+	log.info "--fastq_pattern      STR    Pattern for fastq file selection           Optional (.fastq.gz)"
+	log.info ""
+	log.info "--adapters           FILE   (Trimmomatic) Path to illumina adapters    Optional (\$baseDir/data/adapters/TruSeq3-SE.fa)"
+	log.info "--leading            INT    (Trimmomatic) LEADING parameter            Optional (30)"
+	log.info "--trailing           INT    (Trimmomatic) TRAILING parameter           Optional (30)"
+	log.info "--slidingwindow      STR    (Trimmomatic) SLIDINGWINDOW parameter      Optional (4:15)"
+	log.info "--avgqual            INT    (Trimmomatic) AVGQUAL parameter            Optional (30)"
+	log.info "--minlen             INT    (Trimmomatic) MINLEN parameter             Optional (8)"
+	log.info ""
+	log.info "--bowtie_index       FILE   (Bowtie) Path to index                     Optional (\$baseDir/data/bowtie/human/human_index)"
+	log.info "--bowtie_opts        STR    (Bowtie) additional options                Optional (--sensitive -L 17)"
+	log.info ""
+	log.info "--bowtie_threads     INT    Threads for bowtie                         Optional (7)"
+	log.info "--fastqc_threads     INT    Threads for fastqc                         Optional (2)"
+	log.info "--trimmo_threads     INT    Threads for trimmomatic                    Optional (3)"
+	log.info "--samtools_threads   INT    Threads for samtools                       Optional (4)"
+	log.info ""
+	log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"
 	log.info "--qsize              INT    Max number of parallel jobs                Optional (20)"
 	log.info "--outdir             DIR    Output directory                           Optional (.)"
 	log.info "--logdir             DIR    Log directory                              Optional (\$outdir)"
