@@ -1,4 +1,4 @@
-name: RiboMethSeq-nf
+name: ribomethseq-nf
 channels:
   - conda-forge
   - bioconda
@@ -319,4 +319,3 @@ dependencies:
     - typing-extensions==4.3.0
     - urllib3==1.26.12
     - zipp==3.8.0
-prefix: /home/theo/miniconda3/envs/RiboMethSeq-nf
