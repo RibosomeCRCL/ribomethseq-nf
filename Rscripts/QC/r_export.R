@@ -1,22 +1,29 @@
-#!Rscript
+#!/usr/bin/env Rscript
+
+get_option <- function(args, opt, dft=NA) {
+  ok <- grepl(paste0("^", opt, "="), args)
+  if (any(ok)) strsplit(head(args[ok], 1), "=")[[1]][2]
+  else dft
+}
+script_path <- normalizePath(get_option(commandArgs(trailingOnly=F), "--file"))
+script_dir  <- dirname(script_path)
+
+args <- commandArgs(trailing = TRUE)
+datadir <- as.character(args[1])
+
+message(paste("installation directory :", script_dir))
+message(paste("data directory :", datadir))
+
+source(file.path(script_dir, "trimmomatic_parser.R"))
+source(file.path(script_dir, "report_helper.R"))
+source(file.path(script_dir, "r_flagging.R"))
+
 library(ngsReports)
 library(reshape2)
 library(rmdformats)
 library(dplyr)
 library(ComplexHeatmap)
 library(tidyr)
-# library(viridis)
-
-args <- commandArgs(trailing = TRUE)
-current_wd <- getwd() # get the temp directory assigned by nextflow
-input_installdir <- as.character(args[1]) # directory where this script and its dependencies are installed
-input_datadir <- current_wd # directory where the QC files are
-message(paste("installation directory :", input_installdir))
-message(paste("data directory :", input_datadir))
-
-source(paste(input_installdir, "/Rscripts/QC/trimmomatic_parser.R", sep = ""))
-source(paste(input_installdir, "/Rscripts/QC/report_helper.R", sep = ""))
-source(paste(input_installdir, "/Rscripts/QC/r_flagging.R", sep = ""))
 
 n_decimals <- 2 # number of decimals
 
@@ -27,8 +34,7 @@ trimmomatic_selected_columns <- c("Filename", "Dropped", "%Dropped", "Surviving"
 ##################################################################################
 
 # First, we import FastQC logs with NgsReport and extract the Basic stats.
-
-fdl <- list.files(path = paste(input_datadir), pattern = "fastqc.zip", full.names = TRUE, recursive = T)
+fdl <- list.files(path = datadir, pattern = "fastqc.zip", full.names = TRUE, recursive = TRUE)
 
 # import FastQC zip files
 base_table <- getModule(fdl, "Basic_Statistics")
@@ -45,7 +51,7 @@ base_table["%Unique_Reads"] <- round(base_table["Unique_Reads"] / base_table["To
 # Adapter content
 base_table["%Adapter_content"] <- NA
 adapter_content <- getModule(fdl, "Adapter_Content")
-write.csv(adapter_content, file = paste(input_datadir, "/adapter.csv", sep = ""))
+write.csv(adapter_content, file = paste(datadir, "/adapter.csv", sep = ""))
 adapter_content["Filename"] <- as.factor(adapter_content$Filename)
 for (sample_adapter in levels(adapter_content$Filename)) {
   adapter_by_sample <- adapter_content[which(adapter_content["Filename"] == sample_adapter), ]
@@ -68,7 +74,7 @@ for (sample_sq in levels(as.factor(sequence_quality_scores$Filename))) {
 ############ TRIMMOMATIC ############
 
 # Then, we import Trimmomatic logs with our modified parser in trimmomatic_parser.R
-trim_logs_list <- list.files(path = input_datadir, pattern = "*.trimmomatic.stats.log", full.names = T, recursive = T)
+trim_logs_list <- list.files(path = datadir, pattern = "*.trimmomatic.stats.log", full.names = T, recursive = T)
 
 data_trimmomatic <- suppressWarnings(lapply(trim_logs_list, readLines)) # load all lines for all trimmomatic logs
 names(data_trimmomatic) <- basename(trim_logs_list)
@@ -112,7 +118,7 @@ trim_logs <- tryCatch(
 
 
 ############ BOWTIE 2 ############
-bowtie_logs_list <- list.files(path = input_datadir, pattern = "*.bowtie2.stats.log", full.names = T, recursive = T)
+bowtie_logs_list <- list.files(path = datadir, pattern = "*.bowtie2.stats.log", full.names = T, recursive = T)
 
 bowtie_logs <- importNgsLogs(bowtie_logs_list, type = "bowtie2")
 bowtie_logs["Alignment_Rate"] <- round(bowtie_logs["Alignment_Rate"] * 100, n_decimals)
@@ -143,7 +149,7 @@ colnames(ggplot_total_table) <- gsub("%", "P", colnames(ggplot_total_table))
 ############ Generate flags ############
 total_table_corrected <- total_table
 colnames(total_table_corrected) <- make.names(colnames(total_table_corrected))
-flags_summary_list <- GenerateFlags(total_table_corrected, paste(input_installdir, "/Rscripts/QC/RULES.CSV", sep = ""))
+flags_summary_list <- GenerateFlags(total_table_corrected, file.path(script_dir, "RULES.CSV"))
 flags_summary <- as.data.frame(bind_rows(flags_summary_list))
 flags_summary_spread <- spread(flags_summary, "Category", "Status")
 
@@ -151,9 +157,9 @@ tbl_test <- GetOutliers(tbl = total_table, sample_col = "Filename", val_col = "S
 write.csv(tbl_test, "outlier.csv")
 ############ export data ############
 total_table <- merge(total_table, flags_summary_spread, by = "Filename")
-write.csv(total_table, file = paste(input_datadir, "/QCtable.csv", sep = ""))
+write.csv(total_table, file = paste(datadir, "/QCtable.csv", sep = ""))
 fdl <- FastqcDataList(fdl)
 fqName(fdl) <- BeautifyFilename(fqName(fdl))
 overRep2Fasta(fdl, n = 20, path = "overrep.fasta")
-working_directory <- getwd()
-rmarkdown::render(paste(input_installdir, "/Rscripts/QC/template_report.rmd", sep = ""), output_file = paste(working_directory, "/pipeline_report.html", sep = ""))
+
+rmarkdown::render(file.path(script_dir, "template_report.rmd"), output_file = "pipeline_report.html")

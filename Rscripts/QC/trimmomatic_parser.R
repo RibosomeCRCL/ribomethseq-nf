@@ -105,7 +105,7 @@ parseTrimmomaticLogs <- function(data, ...) {
       Head_Crop,
       Min_Len,
       Avg_Qual,
-      #    Quality_Encoding # we don't have the quality encoding line in our logs because we specified it in our command
+      # Quality_Encoding # we don't have the quality encoding line in our logs because we specified it in our command
     ))
   }
 

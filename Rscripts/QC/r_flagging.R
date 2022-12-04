@@ -7,25 +7,22 @@ GetOutliers <- function(tbl, sample_col, val_col, up_low, threshold) {
   # the list cannot be coerced to type "double". So we unlist first
   tbl_val_unlisted <- as.numeric(unlist(tbl[val_col]))
 
-  tbl_median <- median(tbl_val_unlisted)
-  tbl_mad <- threshold * mad(tbl_val_unlisted)
-  tbl_UB <- tbl_median + tbl_mad
-  tbl_LB <- tbl_median - tbl_mad
+  # Upper & lower boundaries for outliers detection
+  tbl_UB <- median(tbl_val_unlisted) + threshold * mad(tbl_val_unlisted)
+  tbl_LB <- median(tbl_val_unlisted) - threshold * mad(tbl_val_unlisted)
 
-
-
-  # We flag with "FAIL" outliers...
-  # ...above upper bound
+  # Flagging outliers ...
+  # Above upper bound
   tbl_outliers_UB_name <- paste(val_col, "_outliers_UB", sep = "")
   tbl[tbl_outliers_UB_name] <- tbl[val_col] > tbl_UB
-  # ...Below lower bound
+  # Below lower bound
   tbl_outliers_LB_name <- paste(val_col, "_outliers_LB", sep = "")
   tbl[tbl_outliers_LB_name] <- tbl[val_col] < tbl_LB
 
   # according to up_low parameter, three different dataframes can be returned :
   # 1) sample + outliers below lower bound ("Lower")
   # 2) sample + outliers above upper bound ("Upper")
-  # 3) sample + outliers above upper bound + outliers below lower bound
+  # 3) sample + outliers above upper bound + outliers below lower bound ("Both")
   col_to_keep <- switch(up_low,
     "Upper" = tbl_outliers_UB_name,
     "Lower" = tbl_outliers_LB_name,
@@ -47,7 +44,6 @@ FlagOutliers <- function(tbl, sample_col, val_col, up_low) {
 
   return(tbl)
 }
-
 
 FlagByValue <- function(tbl, flag_name, sample_col, val_col, warning_condition, fail_condition) {
   tbl_vals <- as.vector(unlist(tbl[val_col]))
@@ -88,8 +84,6 @@ FlagByMAD <- function(tbl, flag_name, sample_col, val_col, rule_tbl) {
   fail.lower <- rule_tbl[which(rule_tbl["QC.name"] == val_col), "fail.lower"]
   fail.upper <- rule_tbl[which(rule_tbl["QC.name"] == val_col), "fail.upper"]
 
-
-
   message("rules loaded")
   tmp_tbl["is.warning"] <- lapply(tmp_tbl[val_col], function(x) x <= as.numeric(warning.lower) | x >= as.numeric(warning.upper))
   tmp_tbl["is.fail"] <- lapply(tmp_tbl[val_col], function(x) x <= as.numeric(fail.lower) | x >= as.numeric(fail.upper))
@@ -99,7 +93,6 @@ FlagByMAD <- function(tbl, flag_name, sample_col, val_col, rule_tbl) {
   tmp_tbl[flag_name][tmp_tbl["is.fail"] == T] <- "FAIL"
 
   tmp_tbl <- tmp_tbl[, c("Filename", flag_name)]
-
 
   Category <- flag_name
   tbl_output <- tidyr::gather(tmp_tbl, key = Category, value = "Status", one_of(Category))
@@ -152,8 +145,6 @@ FlagDroppedNotAligned <- function(tbl, fail.trimmomatic = 25, fail.bowtie = 25) 
 
   # we only need the "dropped reads" and "Non-Aligned reads" cols, which contain our final results
   tbl_outlier <- tbl_outlier[c("Filename", "Dropped reads", "Non-Aligned reads")]
-
-
 
   # The filename is not a category
   Category <- colnames(tbl_outlier)[-1]
