@@ -35,8 +35,6 @@ log.info ""
 params.fqdir         = null
 params.fastq_pattern = '.fastq.gz'
 
-params.help          = false
-
 // trimmomatic
 params.adapters      = "$baseDir/data/adapters/TruSeq3-SE.fa"
 params.leading       = 30
@@ -48,6 +46,11 @@ params.threads       = 3
 
 // bowtie
 params.bowtie_opts = "--sensitive -L 17"
+
+// samtools
+params.samtools_opts = "--no-PG -h -u -d 'NM' -e '![XS]'"
+
+params.help          = false
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                              INPUT PARAMETERS CHECK
@@ -88,6 +91,7 @@ log.info "Trimmomatic AVGQUAL              : ${params.avgqual}"
 log.info "Trimmomatic MINLEN               : ${params.minlen}"
 log.info "Bowtie options                   : ${params.bowtie_opts}"
 log.info "Bowtie index                     : ${params.bowtie_index}"
+log.info "samtools options                 : ${params.samtools_opts}"
 log.info "Threads for bowtie               : ${params.bowtie_threads}"
 log.info "Threads for fastqc               : ${params.fastqc_threads}"
 log.info "Threads for trimmomatic          : ${params.trimmo_threads}"
@@ -131,84 +135,82 @@ Channel
  */
 
 process fastqc_before {
-	tag { datasetID }
+	tag { sample_id }
 
 	publishDir "$outdir/fastqc_before"
 
 	input:
-	set datasetID, file(reads_2) from read_pairs2_ch
+	set sample_id, file(reads) from read_pairs2_ch
 
 	output:
 	file '*_fastqc.{zip,html}' into fastqc_1, fastqc_12
 
 	"""
-	fastqc -t 1 $reads_2
+	fastqc -t 1 ${reads}
 	"""
 }
 
 process trim {
-	tag { datasetID }
+	tag { sample_id }
 
-	publishDir "$outdir/$datasetID", pattern : "*.fastq"
-	publishDir "$outdir/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
+	publishDir "${outdir}/${sample_id}", pattern : "*.fastq"
+	publishDir "${outdir}/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
 
 	input:
-	set datasetID, file(datasetFile) from read_pairs_ch
+	set sample_id, file(reads) from read_pairs_ch
 
 	output:
-	set datasetID, file("${datasetID}.fastq") into trimmed_files,fastq_files_2
-	set datasetID, file("${datasetID}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
+	set sample_id, file("${sample_id}.fastq") into trimmed_files, trimmed_files2
+	file("${sample_id}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
 
 	"""
 	trimmomatic SE -phred33 -threads ${params.trimmo_threads} \\
-	${datasetFile} ${datasetID}.fastq \\
+	${reads} ${sample_id}.fastq \\
 	ILLUMINACLIP:${params.adapters}:2:30:10 \\
 	LEADING:${params.leading} \\
 	TRAILING:${params.trailing} \\
 	SLIDINGWINDOW:${params.slidingwindow} \\
 	AVGQUAL:${params.avgqual} \\
-	MINLEN:${params.minlen} 2> ${datasetID}.trimmomatic.stats.log
+	MINLEN:${params.minlen} 2> ${sample_id}.trimmomatic.stats.log
 	"""
 }
 
 process fastqc_after {
-	tag { datasetID }
+	tag { sample_id }
 
-	publishDir "$outdir/fastqc_after"
+	publishDir "${outdir}/fastqc_after"
 
 	input:
-	set datasetID, file(reads_qc) from fastq_files_2
+	set sample_id, file(reads) from trimmed_files2
 
 	output:
-	file '*_fastqc.{zip,html}' into fastqc_results
+	file '*_fastqc.{zip,html}'
 
 	"""
-	fastqc -t 1 $reads_qc
+	fastqc -t 1 ${reads}
 	"""
 }
 
 process bowtie2 {
-	tag { datasetID }
+	tag { sample_id }
 
-	publishDir "$outdir/$datasetID", pattern : "*.sam"
-	publishDir "$outdir/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
+	publishDir "${outdir}/${sample_id}", pattern : "*.sam"
+	publishDir "${outdir}/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
 
 	input:
-	set datasetID, file(trimmed_file) from trimmed_files
+	set sample_id, file(reads) from trimmed_files
 
 	output:
-	set datasetID, file("${datasetID}.sam") into bowtie_files
-	set datasetID, file("${datasetID}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
+	set sample_id, file("${sample_id}.sam") into bowtie_files
+	file("${sample_id}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
 
 	"""
-	# PERL5LIB="/opt/conda/lib/5.34.0"
 	bowtie2 -x ${params.bowtie_index} --threads ${params.bowtie_threads} \\
-	${params.bowtie_opts} ${trimmed_file} -S ${datasetID}.sam 2>> ${datasetID}.bowtie2.stats.log
+	${params.bowtie_opts} ${reads} -S ${sample_id}.sam 2>> ${sample_id}.bowtie2.stats.log
 	"""
 }
 
 process multiqc {
-	tag { datasetID }
 
 	publishDir "$outdir", mode: 'copy'
 
@@ -225,62 +227,53 @@ process multiqc {
 	"""
 }
 
-process count5 {
-	tag { datasetID }
+process counts {
+	tag { sample_id }
 
-	publishDir "$outdir/$datasetID", mode:'copy'
+	publishDir "${outdir}/${sample_id}", mode:'copy'
 
 	input:
-	set datasetID, file(aligned_sam) from bowtie_files
+	set sample_id, file(aligned_sam) from bowtie_files
 
 	output:
-	set datasetID, file("${datasetID}_3_counts.csv") into counts_3_end
-	set datasetID, file("${datasetID}_5_counts.csv") into counts_5_end
+	set sample_id, file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv") into counts_ch
 
 	script:
 	"""
-	samtools view -bS ${datasetID}.sam | samtools sort -o tem_${datasetID}.bam
-	samtools view -h -F 4 -b tem_${datasetID}.bam > mapped_RNA_${datasetID}.bam
-	samtools view -h mapped_RNA_${datasetID}.bam > mapped_RNA_${datasetID}.sam
-	rm ${datasetID}.sam
-	rm mapped_RNA_${datasetID}.bam
-	rm tem_${datasetID}.bam
-	grep -E "@|NM:" mapped_RNA_${datasetID}.sam | grep -v "XS:" > unique_rRNA_${datasetID}.sam
-	rm mapped_RNA_${datasetID}.sam
-	samtools view -Sb  unique_rRNA_${datasetID}.sam > unique_rRNA_${datasetID}.bam
-	bedtools genomecov -d -3 -ibam unique_rRNA_${datasetID}.bam > ${datasetID}_3_counts.csv
-	bedtools genomecov -d -5 -ibam unique_rRNA_${datasetID}.bam > ${datasetID}_5_counts.csv
-	rm unique_rRNA_${datasetID}.bam
+	set -o pipefail
+	samtools view ${params.samtools_opts} ${aligned_sam} | \\
+	samtools sort -@${params.samtools_threads} -o ${sample_id}.unique.bam
+
+	bedtools genomecov -d -3 -ibam ${sample_id}.unique.bam > ${sample_id}.3_counts.csv
+	bedtools genomecov -d -5 -ibam ${sample_id}.unique.bam > ${sample_id}.5_counts.csv
 	"""
 }
 
 process r_refine {
-	tag { datasetID }
+	tag { sample_id }
 
-	publishDir "$outdir/$datasetID", mode: 'copy'
+	publishDir "${outdir}/${sample_id}", mode: 'move'
 
 	input:
-	set datasetID, file(counts3) from counts_3_end
-	set datasetID, file(counts5) from counts_5_end
+	set sample_id, file(counts5), file(counts3) from counts_ch
 
 	output:
-	set datasetID, file("Treatment_5.8S_Sample_${datasetID}.csv") into final_58S
-	set datasetID, file("Treatment_18S_Sample_${datasetID}.csv") into final_18S
-	set datasetID, file("Treatment_28S_Sample_${datasetID}.csv") into final_28S
-	set datasetID, file("Treatment_5S_Sample_${datasetID}.csv") into final_5S
+	file("${sample_id}.58S.csv")
+	file("${sample_id}.18S.csv")
+	file("${sample_id}.28S.csv")
+	file("${sample_id}.5S.csv")
 
 	script:
 	"""
-	Rscript $baseDir/Rscripts/Refine/r_refine.R ${counts5} ${counts3} \\
+	Rscript ${baseDir}/Rscripts/Refine/r_refine.R ${counts5} ${counts3} \\
 	${params.fasta_58S} ${params.fasta_18S} ${params.fasta_28S} ${params.fasta_5S} \\
-	${datasetID}
+	${sample_id}
 	"""
 }
 
 process r_export {
-	tag { datasetID }
 
-	publishDir "$outdir", mode: 'copy'
+	publishDir "${outdir}", mode: 'move'
 
 	input:
 	file('*') from fastqc_12.collect()
@@ -294,7 +287,7 @@ process r_export {
 
 	script:
 	"""
-	Rscript $baseDir/Rscripts/QC/r_export.R $baseDir .
+	Rscript ${baseDir}/Rscripts/QC/r_export.R .
 	"""
 }
 
@@ -326,6 +319,8 @@ def helpMessage() {
 	log.info ""
 	log.info "--bowtie_index       FILE   (Bowtie) Path to index                     Optional (\$baseDir/data/bowtie/human/human_index)"
 	log.info "--bowtie_opts        STR    (Bowtie) additional options                Optional (--sensitive -L 17)"
+	log.info ""
+	log.info "--samtools_opts      STR    (samtools) options to view                 Optional (--no-PG -h -u -d 'NM' -e '![XS]')"
 	log.info ""
 	log.info "--bowtie_threads     INT    Threads for bowtie                         Optional (7)"
 	log.info "--fastqc_threads     INT    Threads for fastqc                         Optional (2)"
