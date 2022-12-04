@@ -1,11 +1,11 @@
-# ribomethseq-nf workflow
+# ribomethseq-nf
 
 `ribomethseq-nf` is a [nextflow](https://www.nextflow.io/) pipeline dedicated to
 RiboMethSeq data processing. It generates counts and quality control data.
 
 ### Versions
 
- - 1.0 : first release of the workflow
+ - 1.0 : first release
 
 ## Software requirements
 
@@ -13,7 +13,7 @@ The following software program/packages are required to run this pipeline.
 
   - [nextflow](https://www.nextflow.io)
   - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-  - [samtools](https://github.com/samtools/samtools)
+  - [samtools](https://github.com/samtools/samtools) [>=1.16]
   - [bedtools](https://github.com/arq5x/bedtools2)
   - [Trimmomatic](https://github.com/usadellab/Trimmomatic)
   - [FastQC](https://github.com/s-andrews/FastQC)
@@ -22,6 +22,8 @@ The following software program/packages are required to run this pipeline.
     + reshape2
     + dplyr
     + tidyr
+    + ggpubr
+    + DT
     + rmdformats
     + rmarkdown
     + ngsReports
@@ -30,6 +32,10 @@ The following software program/packages are required to run this pipeline.
 
 If you do not want to install them manually, you can use either docker/singularity
 or conda to build the required environment (see next section)
+
+## General workflow description
+
+TODO : Insert here some explanation about how the data is processed...
 
 ## Installation
 
@@ -51,7 +57,7 @@ command:
 
 ```sh
 cd docker
-conda create -n ribomethseq-1.0 -f conda.yml
+conda env create -n ribomethseq-1.0 -f conda.yml
 ```
 
 If you create the environment prior to running the workflow, you will then need
@@ -96,13 +102,18 @@ computer but then pay attention to control the queue size with `--qsize` (set to
 20 by default) to avoid launching to many jobs depending on your hardware
 capabilities.
 
+## Tests
+
+TODO: add a few lines on the test folder
+
+
 ## Running the workflow
 
 Let's suppose that you have cloned the repository in the following directory:
 `/path/to/ribomethseq-nf`
 
 To run the workflow, you will need to specify both your execution environment
-and the species (human or mouse) of interest. This is done here by combining
+and your species (human or mouse) of interest. This is done here by combining
 nextflow profiles.
 
 `human` and `mouse` profiles are already available. They gather for each species
@@ -182,6 +193,8 @@ it through the `--bowtie_index` parameter.
 
 --bowtie_index       FILE   (Bowtie) Path to index                     Optional ($baseDir/data/bowtie/human/human_index)
 --bowtie_opts        STR    (Bowtie) additional options                Optional (--sensitive -L 17)
+
+--samtools_opts      STR    (samtools) options to view                 Optional (--no-PG -h -u -d 'NM' -e '![XS]')
 
 --bowtie_threads     INT    Threads for bowtie                         Optional (7)
 --fastqc_threads     INT    Threads for fastqc                         Optional (2)
