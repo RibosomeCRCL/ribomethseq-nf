@@ -13,11 +13,12 @@ The following software program/packages are required to run this pipeline.
 
   - [nextflow](https://www.nextflow.io)
   - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-  - [samtools](https://github.com/samtools/samtools) [>=1.16]
+  - [samtools](https://github.com/samtools/samtools) [>=1.15]
   - [bedtools](https://github.com/arq5x/bedtools2)
   - [Trimmomatic](https://github.com/usadellab/Trimmomatic)
   - [FastQC](https://github.com/s-andrews/FastQC)
   - [MultiQC](https://github.com/ewels/MultiQC)
+  - [pandoc](https://pandoc.org/)
   - [R](https://cran.r-project.org) and the following libraries :
     + reshape2
     + dplyr
@@ -35,7 +36,15 @@ or conda to build the required environment (see next section)
 
 ## General workflow description
 
-TODO : Insert here some explanation about how the data is processed...
+The workflow is currently designed to handle RiboMethSeq data generated in
+single-end mode on Illumina sequencers. For each detected fastq file (one per
+sample), quality control (FastQC) and reads trimming (Trimmomatic) steps are
+launched. Trimmed reads are then aligned on rRNA reference sequences with Bowtie2
+in end-to-end mode with `--sensitive -L 17` parameters. From SAM files obtained
+with Bowtie2, read counts are computed using samtools (filter uniquely mapped
+reads and sort) and bedtools (compute coverage). A MultiQC report gathering logs
+from FastQC, Trimmomatic and Bowtie2 is provided as well as an HTML report
+with custom QC metrics computed on the full dataset (all detected fastq files).
 
 ## Installation
 
@@ -104,8 +113,27 @@ capabilities.
 
 ## Tests
 
-TODO: add a few lines on the test folder
+Some tests are provided in the `tests` directory. Once you have set up your
+software environment :
 
+```sh
+cd tests
+
+# Test with tools installed locally
+make test
+
+# Test with conda
+make test-conda
+
+# Test with docker
+make test-docker
+
+# Test with your own created profile (e.g. `custom_profile`)
+make test PROFILE=custom_profile
+
+# Clean the tests directory
+make clean
+```
 
 ## Running the workflow
 
