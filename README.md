@@ -35,11 +35,10 @@ If you do not want to install them manually, you can use either docker/singulari
 or conda to build the required environment (see Installation section)
 
 Note: Earlier version of samtools may work as well but will retain a few more
-SAM records due to a issue in handling expressions in `samtools view` in versions
-prior to 1.15 (See [this issue](https://github.com/samtools/samtools/issues/1476)).
+SAM records due to an issue in expression handling in `samtools view` prior to
+version 1.15 (See [this issue](https://github.com/samtools/samtools/issues/1476)).
 In our case this is related to this filtering expression `-d 'NM' -e '![XS]'`given
 to samtools. This is expected to be really minor though.
-
 
 ## General workflow description
 
