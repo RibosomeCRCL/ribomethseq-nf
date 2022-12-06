@@ -10,9 +10,14 @@ script_dir  <- dirname(script_path)
 
 args <- commandArgs(trailing = TRUE)
 datadir <- as.character(args[1])
+ outdir <- as.character(args[2])
+
+if (is.na(outdir)) outdir <- datadir
 
 message(paste("installation directory :", script_dir))
-message(paste("data directory :", datadir))
+message(paste("data directory :", normalizePath(datadir)))
+message(paste("output directory :", normalizePath(outdir)))
+message(paste("working directory :", getwd()))
 
 source(file.path(script_dir, "trimmomatic_parser.R"))
 source(file.path(script_dir, "report_helper.R"))
@@ -162,4 +167,4 @@ fdl <- FastqcDataList(fdl)
 fqName(fdl) <- BeautifyFilename(fqName(fdl))
 overRep2Fasta(fdl, n = 20, path = "overrep.fasta")
 
-rmarkdown::render(file.path(script_dir, "template_report.rmd"), output_file = "pipeline_report.html")
+rmarkdown::render(file.path(script_dir, "template_report.rmd"), output_file = "pipeline_report.html", output_dir = outdir, intermediates_dir = outdir)
