@@ -69,7 +69,6 @@ def outdir = file(params.outdir, type: 'dir', checkIfExists: true).toAbsolutePat
 def logdir = file(params.logdir, type: 'dir', checkIfExists: true).toAbsolutePath()
 def fqdir  = file(params.fqdir,  type: 'dir', checkIfExists: true).toAbsolutePath().toString() + '/'
 
-
 /* Log execution parameters to stdout */
 log.info "----------------------- Workflow properties ------------------------"
 log.info "Workflow project directory       : $workflow.projectDir"
@@ -114,58 +113,44 @@ Channel
 		file(fq)
 	]}
 	.view()
-	.into { read_pairs_ch; read_pairs2_ch; read_pairs3_ch }
+	.into { reads_ch; reads_ch2; reads_ch3 }
 
-//exit 1
 
-/*
- * process reformat {
- *	tag "$dataset_id"
- *       publishDir "$results_path/reformat"
- *       input:
- *	set datasetID, file(reads_3)     from read_pairs3_ch
- *
- *	output:
- *	set datasetID, file("${datasetID}_reformat.fastq") into reformated_files
- *
- *	"""
- *	reformat.sh in1=$reads_3 out1=${datasetID}_reformat.fastq samplereadstarget=7000000
- *	"""
- * }
- */
-
-process fastqc_before {
+process fastqc {
 	tag { sample_id }
 
-	publishDir "$outdir/fastqc_before"
+	publishDir "${outdir}/fastqc", mode: 'copy', pattern: '*_fastqc.html'
+	publishDir "${outdir}/fastqc/zip", mode: 'copy', pattern: '*_fastqc.zip'
 
 	input:
-	set sample_id, file(reads) from read_pairs2_ch
+	set sample_id, file(reads) from reads_ch
 
 	output:
-	file '*_fastqc.{zip,html}' into fastqc_1, fastqc_12
+	file "*_fastqc.html"
+	file "*_fastqc.zip" into fastqc_ch, fastqc_ch2
 
 	"""
-	fastqc -t 1 ${reads}
+	fastqc --threads ${params.fastqc_threads} \\
+	--outdir . ${reads}
 	"""
 }
 
 process trim {
 	tag { sample_id }
 
-	publishDir "${outdir}/${sample_id}", pattern : "*.fastq"
-	publishDir "${outdir}/trim_logs", pattern : "*.trimmomatic.stats.log", mode: 'copy'
+	publishDir "${outdir}/trimmomatic", mode: 'copy', pattern : "${sample_id}.trim.fastq.gz"
+	publishDir "${outdir}/trimmomatic/logs", mode: 'copy', pattern : "${sample_id}.trimmomatic.stats.log"
 
 	input:
-	set sample_id, file(reads) from read_pairs_ch
+	set sample_id, file(reads) from reads_ch2
 
 	output:
-	set sample_id, file("${sample_id}.fastq") into trimmed_files, trimmed_files2
+	set sample_id, file("${sample_id}.trim.fastq.gz") into trimmed_files, trimmed_files2
 	file("${sample_id}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
 
 	"""
 	trimmomatic SE -phred33 -threads ${params.trimmo_threads} \\
-	${reads} ${sample_id}.fastq \\
+	${reads} ${sample_id}.trim.fastq.gz \\
 	ILLUMINACLIP:${params.adapters}:2:30:10 \\
 	LEADING:${params.leading} \\
 	TRAILING:${params.trailing} \\
@@ -175,27 +160,10 @@ process trim {
 	"""
 }
 
-process fastqc_after {
-	tag { sample_id }
-
-	publishDir "${outdir}/fastqc_after"
-
-	input:
-	set sample_id, file(reads) from trimmed_files2
-
-	output:
-	file '*_fastqc.{zip,html}'
-
-	"""
-	fastqc -t 1 ${reads}
-	"""
-}
-
 process bowtie2 {
 	tag { sample_id }
 
-	publishDir "${outdir}/${sample_id}", pattern : "*.sam"
-	publishDir "${outdir}/bowtie2_logs", pattern : "*.bowtie2.stats.log", mode: 'copy'
+	publishDir "${outdir}/bowtie2/logs", mode: 'copy', pattern : "${sample_id}.bowtie2.stats.log"
 
 	input:
 	set sample_id, file(reads) from trimmed_files
@@ -210,12 +178,31 @@ process bowtie2 {
 	"""
 }
 
-process multiqc {
+process filter {
+	tag { sample_id }
 
-	publishDir "$outdir", mode: 'copy'
+	publishDir "${outdir}/bowtie2", mode: 'copy', pattern : "${sample_id}.uniq.{bam,bam.bai}"
 
 	input:
-	file('*') from fastqc_1.collect()
+	set sample_id, file(sam) from bowtie_files
+
+	output:
+	set sample_id, file("${sample_id}.uniq.bam") into filtered_bam_ch
+
+	"""
+	set -o pipefail
+	samtools view ${params.samtools_opts} ${sam} | \\
+	samtools sort -@${params.samtools_threads} -o ${sample_id}.uniq.bam
+	samtools index ${sample_id}.uniq.bam -o ${sample_id}.uniq.bam.bai
+	"""
+}
+
+process multiqc {
+
+	publishDir "${outdir}", mode: 'copy', pattern: 'multiqc_report.html'
+
+	input:
+	file('*') from fastqc_ch.collect()
 	file('*') from trimmomatic_logs.collect()
 	file('*') from bowtie_logs.collect()
 
@@ -230,29 +217,25 @@ process multiqc {
 process counts {
 	tag { sample_id }
 
-	publishDir "${outdir}/${sample_id}", mode:'copy'
+	publishDir "${outdir}/counts", mode:'copy', pattern: "${sample_id}.*_counts.csv"
 
 	input:
-	set sample_id, file(aligned_sam) from bowtie_files
+	set sample_id, file(filtered_bam) from filtered_bam_ch
 
 	output:
 	set sample_id, file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv") into counts_ch
 
 	script:
 	"""
-	set -o pipefail
-	samtools view ${params.samtools_opts} ${aligned_sam} | \\
-	samtools sort -@${params.samtools_threads} -o ${sample_id}.unique.bam
-
-	bedtools genomecov -d -3 -ibam ${sample_id}.unique.bam > ${sample_id}.3_counts.csv
-	bedtools genomecov -d -5 -ibam ${sample_id}.unique.bam > ${sample_id}.5_counts.csv
+	bedtools genomecov -d -3 -ibam ${filtered_bam} > ${sample_id}.3_counts.csv
+	bedtools genomecov -d -5 -ibam ${filtered_bam} > ${sample_id}.5_counts.csv
 	"""
 }
 
 process r_refine {
 	tag { sample_id }
 
-	publishDir "${outdir}/${sample_id}", mode: 'move'
+	publishDir "${outdir}/refine", mode: 'move', pattern: "${sample_id}.*.csv"
 
 	input:
 	set sample_id, file(counts5), file(counts3) from counts_ch
@@ -276,7 +259,7 @@ process r_export {
 	publishDir "${outdir}", mode: 'move'
 
 	input:
-	file('*') from fastqc_12.collect()
+	file('*') from fastqc_ch2.collect()
 	file('*') from trimmomatic_logs2.collect()
 	file('*') from bowtie_logs2.collect()
 
