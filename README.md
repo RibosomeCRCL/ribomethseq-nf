@@ -42,15 +42,16 @@ to samtools. This is expected to be really minor though.
 
 ## General workflow description
 
-The workflow is currently designed to handle RiboMethSeq data generated in
+The workflow is currently designed to process RiboMethSeq data generated in
 single-end mode on Illumina sequencers. For each detected fastq file (one per
 sample), quality control (FastQC) and reads trimming (Trimmomatic) steps are
 launched. Trimmed reads are then aligned on rRNA reference sequences with Bowtie2
-in end-to-end mode with `--sensitive -L 17` parameters. From SAM files obtained
-with Bowtie2, read counts are computed using samtools (filter uniquely mapped
-reads and sort) and bedtools (compute coverage). A MultiQC report gathering logs
-from FastQC, Trimmomatic and Bowtie2 is provided as well as an HTML report
-with custom QC metrics computed on the full dataset (all detected fastq files).
+in end-to-end mode with `--sensitive -L 17` parameters. Aligned files are then
+coordinate sorted and filtered with samtools to obtain uniquely mapped reads.
+From these, we generate count (coverage) files using bedtools. A MultiQC report
+gathering metrics from FastQC, Trimmomatic and Bowtie2 is provided as well as an
+HTML report with custom QC metrics computed on the full dataset (all detected
+fastq files).
 
 ## Installation
 
