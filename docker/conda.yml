@@ -2,8 +2,8 @@ name: ribomethseq-nf
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
+  - pandoc
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_kmp_llvm
   - _r-mutex=1.0.0=anacondar_1
