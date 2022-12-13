@@ -6,6 +6,7 @@ output: html_document
 ```{r, echo=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning=FALSE)
 ```
 
 # Coverage
@@ -20,7 +21,7 @@ plot(plot_boxplot_samples(fcount_matrix,"count","log10(count)",show_outlier=TRUE
 
 Second, sample that presents a lower or higher coverage might be considered as outlier since C-score robustness is dependent on the coverage. **Here is a Relative Log Coverage plot given the variation of the end read counts to the serie/sample (?) median for each individual sample.** The blue lines give median +/- 2mad variation. Median outside the blue lines identifies putative outlier sample.
 
-```{r}
+```{r RLE}
 plot_RLE(fcount_matrix,"count",show_outlier = T)
 ```
 
@@ -30,8 +31,12 @@ First, to help in identifying distinct coverage profile, coverage profiles are c
 
 ## Clusterized {.unnumbered}
 
-```{r heatmap_corr}
-plot_heatmap_corr(fcount_matrix)
+```{r heatmap_corr, results = 'asis'}
+tryCatch( {
+    plot_heatmap_corr(fcount_matrix)
+}, error = function(cond){
+    cat("<span style=\"color: red;\">Not enough samples to clusterize !</span>")
+})
 ```
 
 ## non-clusterized {.unnumbered}

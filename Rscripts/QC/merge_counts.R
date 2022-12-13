@@ -5,7 +5,7 @@ merge_counts <- function(count_list, rna_col, position_col,count_col) {
   
   # Get the positions from on sample and use them to prepare our merged dataframe
   # (the positions are identical to all samples, as they are aligned on same reference)
-  position_list <- sample_list[[3]][,c(rna_col,position_col)]
+  position_list <- sample_list[[1]][,c(rna_col,position_col)]
   position_list <- paste0(position_list[,1],"_",position_list[,2])
   matrix_all <- data.frame(position = position_list)
 
