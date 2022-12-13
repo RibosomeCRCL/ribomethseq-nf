@@ -1,0 +1,51 @@
+---
+title: "Quality control using read end counts at all genomic positions"
+output: html_document
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+# Coverage
+
+The coverage corresponds to the number of end read counts at each individual genomic position.
+
+First, by comparing the C-score at a given genomic position depending on the number of end read counts in its local environment, it appears that a minimum coverage of 100 end read counts is required to reach a robust C-score. **Here is a boxplot given the distribution of the absolute number of end read counts at each genomic positions for all individual samples.** The blue line gives the minimal 100 end read counts. Median below the blue line identifies putative outlier sample.
+
+```{r boxplot}
+plot(plot_boxplot_samples(fcount_matrix,"count","log10(count)",show_outlier=TRUE))
+```
+
+Second, sample that presents a lower or higher coverage might be considered as outlier since C-score robustness is dependent on the coverage. **Here is a Relative Log Coverage plot given the variation of the end read counts to the serie/sample (?) median for each individual sample.** The blue lines give median +/- 2mad variation. Median outside the blue lines identifies putative outlier sample.
+
+```{r}
+plot_RLE(fcount_matrix,"count",show_outlier = T)
+```
+
+# Correlation-based distance heatmap {.tabset}
+
+First, to help in identifying distinct coverage profile, coverage profiles are compared between two samples in the whole series. Two-by-two samples pearson correlation of the coverage profile is calculated. **Here is given a distance heatmap that summarizes of the correlation scores in the entire series either as clusterized or non-clusterized (tab)**. A perfect correlation is given by 0 (white) and no correlation by 1 (red).
+
+## Clusterized {.unnumbered}
+
+```{r heatmap_corr}
+plot_heatmap_corr(fcount_matrix)
+```
+
+## non-clusterized {.unnumbered}
+
+```{r heatmap_corr_tri,fig.width= }
+plot_heatmap_corr(fcount_matrix,use_triangle=TRUE)
+```
+
+Second, to identify lack of two-by-two correlation between coverage profile and identify putative outlier sample, distribution of the correlation data is performed. **Here is a summarized boxplot of the two-by-two correlation scores of the entire series**. Putative outlier samples are represented as open circles (Q1 -- 1.5\*IQR).
+
+# Coverage profile: serie comparison
+
+First, to help in identifying distinct coverage profile, coverage profiles are compared between the whole series. **Here is given a Component Analysis (COA) plot that illustrates the distance between each sample based on its coverage profile**. Distant sample is a putative outlier.
+
+```{r}
+plot_coa(fcount_matrix)
+```
