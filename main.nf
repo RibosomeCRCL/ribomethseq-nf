@@ -224,7 +224,7 @@ process counts {
 
 	output:
 	set sample_id, file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv") into counts_ch
-
+	set sample_id, file("${sample_id}.5_counts.csv") into counts_ch2
 	script:
 	"""
 	bedtools genomecov -d -3 -ibam ${filtered_bam} > ${sample_id}.3_counts.csv
@@ -255,22 +255,18 @@ process r_refine {
 }
 
 process r_export {
-
+	conda "$baseDir/Rscripts/Rdependencies.yml"
 	publishDir "${outdir}", mode: 'move'
 
 	input:
-	file('*') from fastqc_ch2.collect()
-	file('*') from trimmomatic_logs2.collect()
-	file('*') from bowtie_logs2.collect()
+	file('*') from counts_ch2.collect()
 
 	output:
 	file("pipeline_report.html")
-	file("QCtable.csv")
-	file("overrep.fasta")
 
 	script:
 	"""
-	Rscript ${baseDir}/Rscripts/QC/r_export.R .
+	Rscript ${baseDir}/Rscripts/QC/generate_report.R . 1 2 3
 	"""
 }
 

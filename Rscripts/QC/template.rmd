@@ -36,7 +36,7 @@ plot_heatmap_corr(fcount_matrix)
 
 ## non-clusterized {.unnumbered}
 
-```{r heatmap_corr_tri,fig.width= }
+```{r heatmap_corr_tri}
 plot_heatmap_corr(fcount_matrix,use_triangle=TRUE)
 ```
 

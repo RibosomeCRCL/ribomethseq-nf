@@ -1,0 +1,17 @@
+name: Rmarkdown
+channels:
+  - defaults
+  - R
+  - conda-forge
+dependencies:
+  - r-rmarkdown 
+  - xorg-libxrender
+  - pandoc
+  - r-ggplot2=3.3.6
+  - r-pheatmap
+  - r-factoextra
+  - r-reshape2
+  - r-dplyr
+  - r-tibble
+  - r-ade4
+ 

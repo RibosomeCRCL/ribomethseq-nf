@@ -44,4 +44,4 @@ fcount_matrix <- merge_counts(fcount_data,rna_col,position_col,count_col)
 
 ###### CALL TO RMARKDOWN ######
 
-rmarkdown::render(file.path(script_dir, "template.rmd"), output_file = "pipeline_report.html")
+rmarkdown::render(file.path(script_dir, "template.rmd"), output_file = "pipeline_report.html",output_dir = getwd())
