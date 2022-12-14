@@ -7,7 +7,17 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning=FALSE)
+
+reference_rna_tbl <- as.data.frame(table(fcount_data[[1]][[1]]))
+reference_rna_tbl <- reference_rna_tbl[order(as.numeric(reference_rna_tbl[[2]])),]
+
 ```
+
+# General informations
+
+* Number of samples : **`r ncol(fcount_matrix) - 1`**
+* Number of positions : **`r nrow(fcount_matrix)`**
+* Reference RNA(s) used : `r paste0("\n\t* **", reference_rna_tbl[[1]], "** with **", reference_rna_tbl[[2]], "** positions",collapse="")`
 
 # Coverage
 
@@ -31,25 +41,25 @@ First, to help in identifying distinct coverage profile, coverage profiles are c
 
 ## Clusterized {.unnumbered}
 
-```{r heatmap_corr, results = 'asis'}
-tryCatch( {
+```{r heatmap_corr, results = 'asis',fig.height=7}
+tryCatch({
     plot_heatmap_corr(fcount_matrix)
-}, error = function(cond){
+}, error = function(cond) {
     cat("<span style=\"color: red;\">Not enough samples to clusterize !</span>")
 })
 ```
 
 ## non-clusterized {.unnumbered}
 
-```{r heatmap_corr_tri}
-plot_heatmap_corr(fcount_matrix,use_triangle=TRUE)
+```{r heatmap_corr_tri, fig.height=7}
+plot_heatmap_corr(fcount_matrix, use_triangle=TRUE)
 ```
 
 Second, to identify lack of two-by-two correlation between coverage profile and identify putative outlier sample, distribution of the correlation data is performed. **Here is a summarized boxplot of the two-by-two correlation scores of the entire series**. Putative outlier samples are represented as open circles (Q1 -- 1.5\*IQR).
 
 # Coverage profile: serie comparison
 
-First, to help in identifying distinct coverage profile, coverage profiles are compared between the whole series. **Here is given a Component Analysis (COA) plot that illustrates the distance between each sample based on its coverage profile**. Distant sample is a putative outlier.
+First, to help in identifying distinct coverage profile, coverage profiles are compared between the whole series. **Here is given a Component Analysis (COA) plot that illustrates the distance between each sample based on its coverage profile**. Isolated samples can be considered as putative outliers.
 
 ```{r}
 plot_coa(fcount_matrix)
