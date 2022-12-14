@@ -4,14 +4,15 @@ channels:
   - R
   - conda-forge
 dependencies:
-  - r-rmarkdown 
-  - xorg-libxrender
-  - pandoc
-  - r-ggplot2=3.3.6
-  - r-pheatmap
-  - r-factoextra
-  - r-reshape2
-  - r-dplyr
-  - r-tibble
-  - r-ade4
+  - r-rmarkdown=2.14=r42h6115d3f_0
+  - xorg-libxrender=0.9.10=h7f98852_1003
+  - xorg-libxext=1.3.4=h7f98852_1
+  - pandoc=2.12=h06a4308_1
+  - r-ggplot2=3.3.6=r42h6115d3f_0
+  - r-pheatmap=1.0.12=r42h142f84f_0
+  - r-factoextra=1.0.7=r42hc72bb7e_2
+  - r-reshape2=1.4.4=r42h884c59f_0
+  - r-dplyr=1.0.9=r42h884c59f_0
+  - r-tibble=3.1.7=r42h76d94ec_0
+  - r-ade4=1.7_19=r42h76d94ec_0
  
