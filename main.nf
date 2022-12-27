@@ -232,10 +232,10 @@ process counts {
 	"""
 }
 
-process r_refine {
+process split {
 	tag { sample_id }
 
-	publishDir "${outdir}/refine", mode: 'move', pattern: "${sample_id}.*.csv"
+	publishDir "${outdir}/split", mode: 'move', pattern: "${sample_id}.*.csv"
 
 	input:
 	set sample_id, file(counts5), file(counts3) from counts_ch
@@ -254,19 +254,18 @@ process r_refine {
 	"""
 }
 
-process r_export {
-	conda "$baseDir/Rscripts/Rdependencies.yml"
+process report {
 	publishDir "${outdir}", mode: 'move'
 
 	input:
 	file('*') from counts_ch2.collect()
 
 	output:
-	file("pipeline_report.html")
+	file("rms_report.html")
 
 	script:
 	"""
-	Rscript ${baseDir}/Rscripts/QC/generate_report.R . 1 2 3
+	Rscript ${baseDir}/Rscripts/QC/generate_report.R .
 	"""
 }
 
