@@ -1,13 +1,39 @@
 
 # Tests directory
 
-In this directory, store a **tiny** dataset which allows to run the pipeline in
-a reasonable time. Total size should not be more than a few megabytes.
+We generated a tiny dataset (`fastq` folder) which allows to quickly test if
+your workflow environment is properly working.
 
-If it is not possible to have (or to generate) a very small sized test dataset,
-it is better to keep it external from the git repository and give instructions
-in this _README.md_ on how access these data. Heavy datasets are a pain when
-manipulating git repositories.
+Running this test should take more than 1 or 2 minutes.
 
-Beyond a successful pipeline completion, if possible, explain how to check that
-results given by the execution are indeed what we expect from this test.
+A Makefile is also provided to help you test the workflow :
+
+```
+$ make help
+--------------------------------------------------
+         test : test workflow using user's local PATH
+
+   test-conda : test workflow using conda profile
+
+  test-docker : test workflow using docker profile
+
+        clean : clean local nextflow stuff and results
+--------------------------------------------------
+```
+
+## Local installation
+
+If all the required dependencies are installed in your local environment and all
+the software are available on your PATH, you can simply run `make test`.
+
+## Conda installation
+
+Once you have set up local conda envs (preferred over building the environments
+each time the workflow is launched) and modified the `conda` profile accordingly
+in the config, you can test the workflow with `make test-conda`.
+
+## Docker installation
+
+Similarly, test your docker configuration with `make test-docker`. If necessary,
+be sure to provide necessary bind mounts _via_ the `process.containerOptions`
+directive.

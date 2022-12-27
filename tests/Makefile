@@ -1,19 +1,22 @@
 
 RESDIR = ribomethseq
-
 QSIZE = 6
 FQDIR = fastq
-FQ_PATTERN = '_R1_001.fastq.gz'
+FQ_PATTERN = '.fastq.gz'
 PROFILE = human
 
 all: help
 
 help:
-	@echo "----------------------------------------"
-	@echo "  test : launch test workflows"
+	@echo "--------------------------------------------------"
+	@echo "  test : test workflow using user's local PATH"
+	@echo
+	@echo "  test-conda : test workflow using conda profile"
+	@echo
+	@echo "  test-docker : test workflow using docker profile"
 	@echo
 	@echo " clean : clean local nextflow stuff and results"
-	@echo "----------------------------------------"
+	@echo "--------------------------------------------------"
 
 test: reset
 	nextflow -bg run .. -profile  $(PROFILE) \
