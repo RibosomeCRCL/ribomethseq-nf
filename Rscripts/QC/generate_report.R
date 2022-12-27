@@ -10,7 +10,7 @@ script_dir <- dirname(normalizePath(get_option(commandArgs(trailingOnly=F), "--f
 ### init
 ###
 library(ggplot2)
-#library(dplyr)
+library(dplyr)
 library(factoextra)
 library(pheatmap)
 
