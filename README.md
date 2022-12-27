@@ -23,12 +23,8 @@ The following software program/packages are required to run this pipeline.
     + reshape2
     + dplyr
     + tidyr
-    + ggpubr
-    + DT
-    + rmdformats
     + rmarkdown
-    + ngsReports
-    + ComplexHeatmap
+    + pheatmap
 
 
 If you do not want to install them manually, you can use either docker/singularity
@@ -64,26 +60,40 @@ git clone https://github.com/EpiRnaTools/ribomethseq-nf
 ### Conda environment
 
 Perhaps the easiest way to have a proper environment to run the pipeline is to
-use conda. A yaml file is provided here : `docker/conda.yml`
+use conda. Two YAML files are provided : `docker/rms-processing.yml` and
+`docker/rms-report.yml` corresponding to two distinct environments. The former
+contains requirements for the processing part of the pipeline (samtools, bowtie2, ...)
+and the latter is dedicated to the report generation. We chose to split the two
+environment because solving the full conda environment could take a really long time.
 
-You can either directly use the conda   profile provided in `nextflow.config`
+You can either directly use the conda profile provided in `nextflow.config`
 and the workflow will automatically build the environment at workflow
-initiation or you can build it in advance with for instance the following
-command:
+initiation or you can build it in advance (recommended) with for instance the
+following command:
 
 ```sh
 cd docker
-conda env create -n ribomethseq-1.0 -f conda.yml
+conda env create -f rms-processing.yml
+conda env create -f rms-report.yml
 ```
 
 If you create the environment prior to running the workflow, you will then need
-to adapt the `process.conda` directive from the conda profile in `nextflow.config`.
+to adapt the `process.conda` directives from the conda profile in `nextflow.config`
+as shown below :
 
 ```
 conda {
-  conda.enabled = true
-  process.conda = '/path/to/your/conda/envs/ribomethseq-1.0'
-  includeConfig "nf-config/exec.config"
+	includeConfig "nf-config/exec.config"
+	conda.enabled = true
+
+	process {
+		withName: 'fastqc|trim|bowtie2|filter|multiqc|counts' {
+			conda = "/path/to/your/conda/envs/rms-processing"
+		}
+		withName: 'split|report' {
+			conda = "/path/to/your/conda/envs/rms-report"
+		}
+	}
 }
 ```
 
@@ -129,10 +139,10 @@ cd tests
 # Test with tools installed locally
 make test
 
-# Test with conda
+# Test with conda profile
 make test-conda
 
-# Test with docker
+# Test with docker profile
 make test-docker
 
 # Test with your own created profile (e.g. `custom_profile`)
@@ -236,6 +246,7 @@ it through the `--bowtie_index` parameter.
 --trimmo_threads     INT    Threads for trimmomatic                    Optional (3)
 --samtools_threads   INT    Threads for samtools                       Optional (4)
 
+--split              FLAG   Split count files by RNA                   Optional (false)
 --scheduler          STR    Job scheduler                              Optional (slurm)
 --qsize              INT    Max number of parallel jobs                Optional (20)
 --outdir             DIR    Output directory                           Optional (.)

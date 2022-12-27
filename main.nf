@@ -50,6 +50,7 @@ params.bowtie_opts = "--sensitive -L 17"
 // samtools
 params.samtools_opts = "--no-PG -h -u -d 'NM' -e '![XS]'"
 
+params.split         = false
 params.help          = false
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -237,6 +238,8 @@ process split {
 
 	publishDir "${outdir}/split", mode: 'move', pattern: "${sample_id}.*.csv"
 
+	when: params.split
+
 	input:
 	set sample_id, file(counts5), file(counts3) from counts_ch
 
@@ -305,6 +308,7 @@ def helpMessage() {
 	log.info "--trimmo_threads     INT    Threads for trimmomatic                    Optional (3)"
 	log.info "--samtools_threads   INT    Threads for samtools                       Optional (4)"
 	log.info ""
+	log.info "--split              FLAG   Split count files by RNA                   Optional (false)"
 	log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"
 	log.info "--qsize              INT    Max number of parallel jobs                Optional (20)"
 	log.info "--outdir             DIR    Output directory                           Optional (.)"
