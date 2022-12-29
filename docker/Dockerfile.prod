@@ -28,13 +28,11 @@ RUN    cd R-4.2.2 \
 
 ENV PATH="/usr/R/bin:${PATH}"
 
-# factoextra imports tidyr, reshape2
-# tidyr imports dplyr, tibble
-RUN R -e "install.packages('ade4',       dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('factoextra', dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('rmarkdown',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('ggplot2',    dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('pheatmap',   dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('tidyr',     dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('reshape2',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('rmarkdown', dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('ggplot2',   dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('pheatmap',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
 
 #
 # htslib / samtools
@@ -77,10 +75,14 @@ RUN    wget https://github.com/BenLangmead/bowtie2/releases/download/v2.5.0/bowt
           bowtie2-build bowtie2-build-s bowtie2-build-l \
           bowtie2-inspect bowtie2-inspect-s bowtie2-inspect-l /home/rms/bin
 
-
+#
+# Reduce size of compiled binaries
+#
 RUN    cd /home/rms/bin \
-    && strip bowtie2-align-s bowtie2-align-l bowtie2-build-s bowtie2-build-l \
-             bowtie2-inspect-s bowtie2-inspect-l bedtools samtools tabix bgzip htsfile
+    && strip bowtie2-align-s bowtie2-align-l     \
+             bowtie2-build-s bowtie2-build-l     \
+             bowtie2-inspect-s bowtie2-inspect-l \
+             bedtools samtools tabix bgzip htsfile
 
 #
 # trimmomatic
@@ -105,9 +107,31 @@ RUN    wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.
 #
 RUN pip install multiqc
 
+###
+### Final image with only runtime requirements
+###
+FROM debian:bullseye-20221219-slim
 
+RUN    apt-get update                                 \
+    && apt-get install -y --no-install-recommends     \
+        procps xvfb xauth xfonts-base xfonts-100dpi   \
+        xfonts-75dpi libjpeg62 libpng16-16 libtiff5   \
+        libbz2-1.0 libc6 libgfortran5 libgomp1        \
+        libpcre2-8-0 libquadmath0 libreadline8        \
+        liblzma5 zlib1g libcairo2 libxml2 libdeflate0 \
+        perl pandoc python3 default-jre unzip zip
+
+COPY --from=builder /usr/R /usr/R
+COPY --from=builder /usr/lib/python3.9 /usr/lib/python3.9
+COPY --from=builder /usr/local/lib/python3.9 /usr/local/lib/python3.9
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /home/rms/FastQC /home/rms/FastQC
+COPY --from=builder /home/rms/Trimmomatic /home/rms/Trimmomatic
+COPY --from=builder /home/rms/bin /home/rms/bin
+
+ENV PATH="/usr/R/bin:${PATH}"
 ENV PATH="/home/rms/bin:${PATH}"
 
-WORKDIR /home/rms
+MAINTAINER anthony.ferrari@lyon.unicancer.fr
 
 CMD ["/bin/bash"]
