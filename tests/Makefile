@@ -4,6 +4,7 @@ QSIZE = 6
 FQDIR = fastq
 FQ_PATTERN = '.fastq.gz'
 PROFILE = human
+SCHEDULER = slurm
 
 all: help
 
@@ -19,7 +20,7 @@ help:
 	@echo "--------------------------------------------------"
 
 test: reset
-	nextflow -bg run .. -profile  $(PROFILE) \
+	nextflow -bg run .. -profile  $(PROFILE) --scheduler $(SCHEDULER) \
 	--qsize $(QSIZE) --outdir $(RESDIR) --logdir . \
 	--fqdir $(FQDIR) --fastq_pattern $(FQ_PATTERN)
 
