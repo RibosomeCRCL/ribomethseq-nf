@@ -20,9 +20,12 @@ The following software program/packages are required to run this pipeline.
   - [MultiQC](https://github.com/ewels/MultiQC)
   - [pandoc](https://pandoc.org/)
   - [R](https://cran.r-project.org) and the following libraries :
+    + ade4
+    + factoextra
     + reshape2
     + dplyr
     + tidyr
+    + tibble
     + rmarkdown
     + pheatmap
 
