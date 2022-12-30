@@ -24,11 +24,14 @@ test: reset
 	--qsize $(QSIZE) --outdir $(RESDIR) --logdir . \
 	--fqdir $(FQDIR) --fastq_pattern $(FQ_PATTERN)
 
+test-conda: reset
+	$(MAKE) test PROFILE='human,conda'
+
 test-docker: reset
 	$(MAKE) test PROFILE='human,docker'
 
-test-conda: reset
-	$(MAKE) test PROFILE='human,conda'
+test-singularity: reset
+	$(MAKE) test PROFILE='human,singularity'
 
 clean:
 	rm -rf .nextflow* work ribomethseq-nf.* $(RESDIR)
