@@ -16,6 +16,8 @@ help:
 	@echo
 	@echo "  test-docker : test workflow using docker profile"
 	@echo
+	@echo "  test-singularity : test workflow using singularity profile"
+	@echo
 	@echo " clean : clean local nextflow stuff and results"
 	@echo "--------------------------------------------------"
 

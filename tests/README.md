@@ -11,13 +11,15 @@ A Makefile is also provided to help you test the workflow :
 ```
 $ make help
 --------------------------------------------------
-         test : test workflow using user's local PATH
+test : test workflow using user's local PATH
 
-   test-conda : test workflow using conda profile
+test-conda : test workflow using conda profile
 
-  test-docker : test workflow using docker profile
+test-docker : test workflow using docker profile
 
-        clean : clean local nextflow stuff and results
+test-singularity : test workflow using singularity profile
+
+clean : clean local nextflow stuff and results
 --------------------------------------------------
 ```
 
@@ -35,5 +37,11 @@ in the config, you can test the workflow with `make test-conda`.
 ## Docker installation
 
 Similarly, test your docker configuration with `make test-docker`. If necessary,
+be sure to provide necessary bind mounts _via_ the `process.containerOptions`
+directive.
+
+## Singularity installation
+
+Test your singularity configuration with `make test-singularity`. If necessary,
 be sure to provide necessary bind mounts _via_ the `process.containerOptions`
 directive.
