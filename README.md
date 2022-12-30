@@ -108,9 +108,8 @@ conda {
 
 ### Docker image
 
-A docker image can also be built using the provided `docker/Dockerfile`. The
-image will be built upon a `continuumio/miniconda3` base image and the previous
-conda environment.
+A docker image can also be built using the provided `docker/Dockerfile.prod`. The
+image will be built upon a debian 11 (bullseye) base image.
 
 To build the docker image :
 
@@ -121,6 +120,8 @@ docker build -t ribomethseq-nf:1.0 -f Dockerfile.prod .
 
 If you need to mount specific path(s) of your infrastructure, adapt the docker
 profile in the configuration file (`containerOptions`).
+
+More information on docker image content in the [docker README](docker/README.md).
 
 ### Singularity image
 
