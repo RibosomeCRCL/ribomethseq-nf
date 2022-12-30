@@ -11,7 +11,7 @@ WORKDIR /home/rms/src
 #
 RUN    apt-get update                                \
     && apt-get install -y wget gcc g++ gfortran make \
-        pkg-config xorg-dev xvfb                     \
+        cmake pkg-config xorg-dev xvfb               \
         libjpeg-dev libpng-dev libtiff-dev           \
         libc6-dev libbz2-dev                         \
         libcurl4-openssl-dev libgomp1 liblzma-dev    \
@@ -36,11 +36,15 @@ RUN R -e "install.packages('rmarkdown',  dependencies=c('Depends', 'Imports', 'L
 RUN R -e "install.packages('ggplot2',    dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('pheatmap',   dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
 
+
+# more requirements
+RUN    apt-get update                                           \
+    && apt-get install -y autoconf automake perl libdeflate-dev \
+                          unzip zip default-jre python3 pip
+
 #
 # htslib / samtools
 #
-RUN    apt-get update                                \
-    && apt-get install -y gcc make autoconf automake perl cmake libdeflate-dev
 
 RUN    wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2 \
     && tar xjf htslib-1.16.tar.bz2
@@ -64,9 +68,6 @@ RUN    wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtool
     && chmod +x bedtools.static.binary \
     && mv bedtools.static.binary /home/rms/bin/bedtools
 
-RUN    apt-get update \
-    && apt-get install -y unzip zip default-jre python3 pip
-
 #
 # bowtie2
 #
@@ -83,7 +84,7 @@ RUN    cd /home/rms/bin \
              bowtie2-inspect-s bowtie2-inspect-l bedtools samtools tabix bgzip htsfile
 
 #
-# trimmomatic
+# Trimmomatic
 #
 RUN    wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip \
     && unzip Trimmomatic-0.39.zip \
@@ -93,7 +94,7 @@ RUN    wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimm
 COPY trimmomatic /home/rms/bin
 
 #
-# FastQc
+# FastQC
 #
 RUN    wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip \
     && unzip fastqc_v0.11.9.zip \
@@ -105,6 +106,12 @@ RUN    wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.
 #
 RUN pip install multiqc
 
+#
+# pandoc
+#
+RUN    wget https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-1-amd64.deb \
+    && dpkg -i pandoc-2.19.2-1-amd64.deb \
+    && mv /usr/bin/pandoc /usr/local/bin
 
 ENV PATH="/home/rms/bin:${PATH}"
 

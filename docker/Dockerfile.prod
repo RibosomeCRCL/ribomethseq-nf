@@ -11,7 +11,7 @@ WORKDIR /home/rms/src
 #
 RUN    apt-get update                                \
     && apt-get install -y wget gcc g++ gfortran make \
-        pkg-config xorg-dev xvfb                     \
+        cmake pkg-config xorg-dev xvfb               \
         libjpeg-dev libpng-dev libtiff-dev           \
         libc6-dev libbz2-dev                         \
         libcurl4-openssl-dev libgomp1 liblzma-dev    \
@@ -28,18 +28,23 @@ RUN    cd R-4.2.2 \
 
 ENV PATH="/usr/R/bin:${PATH}"
 
-RUN R -e "install.packages('tidyr',     dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('reshape2',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('rmarkdown', dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('ggplot2',   dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('pheatmap',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+# factoextra imports tidyr, reshape2
+# tidyr imports dplyr, tibble
+RUN R -e "install.packages('ade4',       dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('factoextra', dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('rmarkdown',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('ggplot2',    dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('pheatmap',   dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
+
+
+# more requirements
+RUN    apt-get update                                           \
+    && apt-get install -y autoconf automake perl libdeflate-dev \
+                          unzip zip default-jre python3 pip
 
 #
 # htslib / samtools
 #
-RUN    apt-get update                                \
-    && apt-get install -y gcc make autoconf automake perl cmake libdeflate-dev
-
 RUN    wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2 \
     && tar xjf htslib-1.16.tar.bz2
 
@@ -61,9 +66,6 @@ RUN    cd samtools-1.16.1 && autoheader && autoconf -Wno-syntax                 
 RUN    wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
     && chmod +x bedtools.static.binary \
     && mv bedtools.static.binary /home/rms/bin/bedtools
-
-RUN    apt-get update \
-    && apt-get install -y unzip zip default-jre python3 pip
 
 #
 # bowtie2
@@ -107,6 +109,13 @@ RUN    wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.
 #
 RUN pip install multiqc
 
+#
+# pandoc
+#
+RUN    wget https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-1-amd64.deb \
+    && dpkg -i pandoc-2.19.2-1-amd64.deb \
+    && mv /usr/bin/pandoc /usr/local/bin
+
 ###
 ### Final image with only runtime requirements
 ###
@@ -119,9 +128,10 @@ RUN    apt-get update                                 \
         libbz2-1.0 libc6 libgfortran5 libgomp1        \
         libpcre2-8-0 libquadmath0 libreadline8        \
         liblzma5 zlib1g libcairo2 libxml2 libdeflate0 \
-        perl pandoc python3 default-jre unzip zip
+        perl python3 default-jre unzip zip
 
 COPY --from=builder /usr/R /usr/R
+COPY --from=builder /usr/lib/python3 /usr/lib/python3
 COPY --from=builder /usr/lib/python3.9 /usr/lib/python3.9
 COPY --from=builder /usr/local/lib/python3.9 /usr/local/lib/python3.9
 COPY --from=builder /usr/local/bin /usr/local/bin
@@ -131,6 +141,8 @@ COPY --from=builder /home/rms/bin /home/rms/bin
 
 ENV PATH="/usr/R/bin:${PATH}"
 ENV PATH="/home/rms/bin:${PATH}"
+
+WORKDIR /home/rms
 
 MAINTAINER anthony.ferrari@lyon.unicancer.fr
 
