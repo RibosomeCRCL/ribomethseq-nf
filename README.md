@@ -7,6 +7,12 @@ RiboMethSeq data processing. It generates counts and quality control data.
 
  - 1.0 : first release
 
+### Todo @Theo :
+
+  1. Get rid of factoextra dependency (really really long to install for little added value)
+  2. Get rid of reshape2 dependency (replace with tidyr functions)
+  3. Write the output files section
+
 ## Software requirements
 
 The following software program/packages are required to run this pipeline.
@@ -21,8 +27,8 @@ The following software program/packages are required to run this pipeline.
   - [pandoc](https://pandoc.org/)
   - [R](https://cran.r-project.org) and the following libraries :
     + ade4
-    + factoextra
-    + reshape2
+    + factoextra (to be removed)
+    + reshape2 (to be removed)
     + dplyr
     + tidyr
     + tibble
@@ -71,7 +77,7 @@ environment because solving the full conda environment could take a really long 
 
 You can either directly use the conda profile provided in `nextflow.config`
 and the workflow will automatically build the environment at workflow
-initiation or you can build it in advance (recommended) with for instance the
+initiation or you can build it in advance (**recommended**) with for instance the
 following command:
 
 ```sh
@@ -110,7 +116,7 @@ To build the docker image :
 
 ```sh
 cd docker
-docker build -t ribomethseq-nf:1.0 .
+docker build -t ribomethseq-nf:1.0 -f Dockerfile.prod .
 ```
 
 If you need to mount specific path(s) of your infrastructure, adapt the docker
@@ -120,6 +126,15 @@ profile in the configuration file (`containerOptions`).
 
 There is no proper singularity recipe provided at the moment, but in the meantime
 you can convert the Docker image to a singularity image.
+
+```sh
+# first, create an archive of the docker image
+docker save ribomethseq-nf:1.0 | gzip > ribomethseq-nf_1.0.tar.gz
+
+# (... somewhere else ...)
+# second, build a sif image from the archive
+singularity build ribomethseq-nf_1.0.sif docker-archive://ribomethseq-nf_1.0.tar.gz
+```
 
 ### HPC environment
 
@@ -139,14 +154,17 @@ software environment :
 ```sh
 cd tests
 
-# Test with tools installed locally
+# Test with tools installed in PATH
 make test
 
 # Test with conda profile
 make test-conda
 
-# Test with docker profile
-make test-docker
+# Test with docker profile on local machine
+make test-docker SCHEDULER=local
+
+# Test with singularity profile on HPC with pbs
+make test-singularity SCHEDULER=pbs
 
 # Test with your own created profile (e.g. `custom_profile`)
 make test PROFILE=custom_profile
