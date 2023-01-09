@@ -21,7 +21,6 @@ message(paste("installation directory :", script_dir))
 message(paste("data directory :", normalizePath(datadir)))
 message(paste("working directory :", getwd()))
 
-#source(file.path(script_dir, "merge_counts.R"))
 source(file.path(script_dir, "plot_boxplot.R"))
 source(file.path(script_dir, "plot_RLE.R"))
 source(file.path(script_dir, "plot_heatmap.R"))
