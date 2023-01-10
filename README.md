@@ -7,12 +7,6 @@ RiboMethSeq data processing. It generates counts and quality control data.
 
  - 1.0 : first release
 
-### Todo @Theo :
-
-  1. Get rid of factoextra dependency (really really long to install for little added value)
-  2. Get rid of reshape2 dependency (replace with tidyr functions)
-  3. Write the output files section
-
 ## Software requirements
 
 The following software program/packages are required to run this pipeline.
@@ -27,8 +21,6 @@ The following software program/packages are required to run this pipeline.
   - [pandoc](https://pandoc.org/)
   - [R](https://cran.r-project.org) and the following libraries :
     + ade4
-    + factoextra (to be removed)
-    + reshape2 (to be removed)
     + dplyr
     + tidyr
     + tibble
@@ -347,7 +339,7 @@ The files are in CSV format and have the following structure :
 
 The column headers have been added in the above example for clarity, but the real output files do not have them.
 
-### RiboMethSeq (RMS) Report
+### RiboMethSeq (RMS) quality control Report
 
 The RiboMethSeq report is stored in rms_report.html, at the root of the output directory.
 

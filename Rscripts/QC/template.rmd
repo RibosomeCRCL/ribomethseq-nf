@@ -58,7 +58,7 @@ plot_heatmap_corr(fcount_matrix, use_triangle=TRUE)
 
 # Coverage profile: serie comparison
 
-First, to help in identifying distinct coverage profile, coverage profiles are compared between the whole series. **Here is given a Component Analysis (COA) plot that illustrates the distance between each sample based on its coverage profile**. Isolated samples can be considered as putative outliers.
+To help in identifying distinct coverage profile, coverage profiles are compared between the whole series. **Here is given a Correspondence Analysis (COA) plot that illustrates the distance between each sample based on its coverage profile**. Isolated samples can be considered as putative outliers.
 
 ```{r}
 plot_coa(fcount_matrix)
