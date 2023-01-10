@@ -66,4 +66,4 @@ plot_coa(fcount_matrix)
 ```
 
 --------------------------------------------------
-This report has been automatically generated RiboMethSeq-nf 1.0.0.
+This report has been automatically generated with RiboMethSeq-nf 1.0.0.
