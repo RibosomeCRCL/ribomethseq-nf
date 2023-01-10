@@ -1,5 +1,6 @@
 ---
 title: "Quality control using read end counts at all genomic positions"
+date: "`r format(Sys.time(), '%x | %X %Z')`"
 output: html_document
 ---
 
@@ -63,3 +64,6 @@ To help in identifying distinct coverage profile, coverage profiles are compared
 ```{r}
 plot_coa(fcount_matrix)
 ```
+
+--------------------------------------------------
+This report has been automatically generated RiboMethSeq-nf 1.0.0.
