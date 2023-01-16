@@ -53,6 +53,9 @@ params.samtools_opts = "--no-PG -h -u -d 'NM' -e '![XS]'"
 params.split         = false
 params.help          = false
 
+// counts
+params.threeendcount = false
+
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                              INPUT PARAMETERS CHECK
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
@@ -97,6 +100,7 @@ log.info "Threads for bowtie               : ${params.bowtie_threads}"
 log.info "Threads for fastqc               : ${params.fastqc_threads}"
 log.info "Threads for trimmomatic          : ${params.trimmo_threads}"
 log.info "Threads for samtools             : ${params.samtools_threads}"
+log.info "Export 3'end read count          : ${params.threeendcount}"
 log.info "Log directory                    : ${logdir}"
 log.info "Output directory                 : ${outdir}"
 log.info "Max parallel jobs                : ${params.qsize}"
@@ -218,8 +222,9 @@ process multiqc {
 
 process counts {
 	tag { sample_id }
-
-	publishDir "${outdir}/counts", mode:'copy', pattern: "${sample_id}.*_counts.csv"
+		
+	publishDir "${outdir}/counts/", mode:'copy', pattern: "${sample_id}.5_counts.csv"
+	publishDir "${outdir}/counts/", mode:'copy', pattern: "${sample_id}.3_counts.csv", enabled: params.threeendcount
 
 	input:
 	set sample_id, file(filtered_bam) from filtered_bam_ch
@@ -236,7 +241,7 @@ process counts {
 
 process split {
 	tag { sample_id }
-
+	
 	publishDir "${outdir}/split", mode: 'move', pattern: "${sample_id}.*.csv"
 
 	when: params.split
@@ -308,6 +313,8 @@ def helpMessage() {
 	log.info "--fastqc_threads     INT    Threads for fastqc                         Optional (2)"
 	log.info "--trimmo_threads     INT    Threads for trimmomatic                    Optional (3)"
 	log.info "--samtools_threads   INT    Threads for samtools                       Optional (4)"
+	log.info ""
+	log.info "--threeendcount      FLAG   Export 3'end read count                    Optional (false)"
 	log.info ""
 	log.info "--split              FLAG   Split count files by RNA                   Optional (false)"
 	log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"
