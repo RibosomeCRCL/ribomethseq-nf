@@ -1,7 +1,6 @@
 # ribomethseq-nf
 
-`ribomethseq-nf` is a [nextflow](https://www.nextflow.io/) pipeline dedicated to
-RiboMethSeq data processing. It generates counts and quality control data.
+`ribomethseq-nf` is a [nextflow](https://www.nextflow.io/) pipeline dedicated to RiboMethSeq data processing. It generates quality control data and counts, which can be directly used for further analyses using the rRMSAnalyzer package.
 
 ### Versions
 
@@ -42,9 +41,9 @@ to samtools. This is expected to be really minor though.
 The workflow is currently designed to process RiboMethSeq data generated in
 single-end mode on Illumina sequencers. For each detected fastq file (one per
 sample), quality control (FastQC) and reads trimming (Trimmomatic) steps are
-launched. Trimmed reads are then aligned on rRNA reference sequences with Bowtie2
-in end-to-end mode with `--sensitive -L 17` parameters. Aligned files are then
-coordinate sorted and filtered with samtools to obtain uniquely mapped reads.
+launched. Trimmed reads are then aligned on rRNA reference sequences (human or mouse,
+included in the pipeline) with Bowtie2 in end-to-end mode with `--sensitive -L 17` parameters.
+Aligned files are then coordinate sorted and filtered with samtools to obtain uniquely mapped reads.
 From these, we generate count (coverage) files using bedtools. A MultiQC report
 gathering metrics from FastQC, Trimmomatic and Bowtie2 is provided as well as an
 HTML report with custom QC metrics computed on the full dataset (all detected
@@ -325,7 +324,7 @@ Two HTML reports are also generated :
 
 ### Read-end count files
 
-The read-end count files represent the main output from this pipeline and are stored in the counts directory. **Two files are generated per sample**, depending if they contain the number of reads starting (5'end) or ending (3'end) at each position of the reference RNAs.
+The read-end count files represent the main output from this pipeline and are stored in the counts directory. **One file is generated per sample**, containing the number of 5’ or 3’-end read counts at each position of the reference RNAs.
 
 The files are in CSV format and have the following structure : 
 
@@ -341,10 +340,10 @@ The column headers have been added in the above example for clarity, but the rea
 
 ### RiboMethSeq (RMS) quality control Report
 
-The RiboMethSeq report is stored in rms_report.html, at the root of the output directory.
+The RiboMethSeq QC report is stored in rms_report.html, at the root of the output directory.
 
 It currently contains the following analyses :
-* A read-end count boxplot and RLE for each samples.
+* A end-read count boxplot and RLE for each samples.
 * A distance heatmap to compare coverage profiles between samples.
 * A correspondence analysis of the coverage profiles.
 
