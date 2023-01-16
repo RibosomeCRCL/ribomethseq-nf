@@ -88,7 +88,7 @@ plot_coa <- function(count_matrix,col_for_color = NULL, axis = c(1,2)) {
   return(coa.plot.col(coa_calculated,xax = 1,
   yax = 2,
   lab.co = colnames(coa_calculated$tab),
-  main = paste0("Correspondence analysis\n of the raw counts on all genomic positions (", nrow(coa_calculated$tab),")")))
+  main = paste0("Correspondence analysis\n of the raw counts on all genomic positions (", nrow(coa_calculated$tab)," nd)")))
 }
 
 .compute_coa <- function(counts = NULL){
