@@ -223,8 +223,8 @@ process multiqc {
 process counts {
 	tag { sample_id }
 		
-	publishDir "${outdir}/counts/", mode:'copy', pattern: "${sample_id}.5_counts.csv"
-	publishDir "${outdir}/counts/", mode:'copy', pattern: "${sample_id}.3_counts.csv", enabled: params.threeendcount
+	publishDir "${outdir}/counts/5p/", mode:'copy', pattern: "${sample_id}.5_counts.csv"
+	publishDir "${outdir}/counts/3p/", mode:'copy', pattern: "${sample_id}.3_counts.csv", enabled: params.threeendcount
 
 	input:
 	set sample_id, file(filtered_bam) from filtered_bam_ch
