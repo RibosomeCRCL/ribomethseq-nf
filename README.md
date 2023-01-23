@@ -324,7 +324,7 @@ Two HTML reports are also generated :
 
 ### Read-end count files
 
-The read-end count files represent the main output from this pipeline and are stored in the counts directory. **One file is generated per sample**, containing the number of 5’ or 3’-end read counts at each position of the reference RNAs.
+The read-end count files represent the main output from this pipeline and are stored in the counts directory. **By default, only the 5'end-read counts are exported** (one file per sample). 3'end-read counts can also be exported alongside, using the `--threeandcount` parameter.
 
 The files are in CSV format and have the following structure : 
 
