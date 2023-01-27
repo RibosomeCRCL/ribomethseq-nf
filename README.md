@@ -8,9 +8,13 @@
 
 ## Software requirements
 
-The following software program/packages are required to run this pipeline.
+[Nextflow](https://www.nextflow.io) (**21.04 or later**) is required to run this pipeline.
 
-  - [nextflow](https://www.nextflow.io)
+> **Warning**
+> Older Nextflow versions before 20.10.0 will likely fail to run RiboMethSeq-nf.
+
+The following software program/packages are also required to run this pipeline.
+
   - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
   - [samtools](https://github.com/samtools/samtools) [>=1.15]
   - [bedtools](https://github.com/arq5x/bedtools2)
