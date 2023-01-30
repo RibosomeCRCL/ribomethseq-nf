@@ -1,0 +1,2 @@
+#!/bin/sh
+java -Xms512m -Xmx1g -jar /home/rms/Trimmomatic/trimmomatic-0.39.jar $@

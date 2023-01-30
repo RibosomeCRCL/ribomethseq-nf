@@ -1,0 +1,6 @@
+/work/
+/ribomethseq/
+/ribomethseq-nf.report/
+ribomethseq-nf.success
+ribomethseq-nf.failure
+.nextflow*
