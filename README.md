@@ -129,8 +129,9 @@ docker save ribomethseq-nf:1.0 | gzip > ribomethseq-nf_1.0.tar.gz
 
 # (... somewhere else ...)
 # second, build a sif image from the archive
-singularity build ribomethseq-nf_1.0.sif docker-archive://ribomethseq-nf_1.0.tar.gz
+singularity build [--sandbox] ribomethseq-nf_1.0.sif docker-archive://ribomethseq-nf_1.0.tar.gz
 ```
+If problems occur with the loop device, the option --sandbox can be used to build the singularity image.
 
 ### HPC environment
 
