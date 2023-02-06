@@ -114,7 +114,7 @@ docker build -t ribomethseq-nf:1.0 -f Dockerfile.prod .
 ```
 
 If you need to mount specific path(s) of your infrastructure, adapt the docker
-profile in the configuration file (`containerOptions`).
+profile in the configuration file (`process.containerOptions`).
 
 More information on docker image content in the [docker README](docker/README.md).
 
@@ -132,6 +132,11 @@ docker save ribomethseq-nf:1.0 | gzip > ribomethseq-nf_1.0.tar.gz
 singularity build [--sandbox] ribomethseq-nf_1.0.sif docker-archive://ribomethseq-nf_1.0.tar.gz
 ```
 If problems occur with the loop device, the option --sandbox can be used to build the singularity image.
+
+The resulting ribomethseq-nf_1.0.sif must be in the directory specifed by `singularity.cacheDir` in the configuration file.
+
+If you need to mount specific path(s) of your infrastructure, adapt the Singularity
+profile in the configuration file (`process.containerOptions`).
 
 ### HPC environment
 
