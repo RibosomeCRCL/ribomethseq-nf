@@ -34,7 +34,8 @@ log.info ""
 
 params.fqdir         = null
 params.fastq_pattern = '.fastq.gz'
-
+//fastqc
+params.fastqcoutput  = false
 // trimmomatic
 params.adapters      = "$baseDir/data/adapters/TruSeq3-SE.fa"
 params.leading       = 30
@@ -43,12 +44,15 @@ params.slidingwindow = '4:15'
 params.avgqual       = 30
 params.minlen        = 8
 params.threads       = 3
+params.trimoutput    = false
 
 // bowtie
 params.bowtie_opts = "--sensitive -L 17"
+params.bowtieoutput = false
 
 // samtools
 params.samtools_opts = "--no-PG -h -u -d 'NM' -e '![XS]'"
+params.samtoolsoutput = false
 
 params.split         = false
 params.help          = false
@@ -125,8 +129,8 @@ Channel
 process fastqc {
 	tag { sample_id }
 
-	publishDir "${outdir}/fastqc", mode: 'copy', pattern: '*_fastqc.html'
-	publishDir "${outdir}/fastqc/zip", mode: 'copy', pattern: '*_fastqc.zip'
+	publishDir "${outdir}/fastqc", mode: 'copy', pattern: '*_fastqc.html', enabled : params.fastqcoutput
+	publishDir "${outdir}/fastqc/zip", mode: 'copy', pattern: '*_fastqc.zip', enabled : params.fastqcoutput
 
 	input:
 	set sample_id, file(reads) from reads_ch
@@ -144,8 +148,8 @@ process fastqc {
 process trim {
 	tag { sample_id }
 
-	publishDir "${outdir}/trimmomatic", mode: 'copy', pattern : "${sample_id}.trim.fastq.gz"
-	publishDir "${outdir}/trimmomatic/logs", mode: 'copy', pattern : "${sample_id}.trimmomatic.stats.log"
+	publishDir "${outdir}/trimmomatic", mode: 'copy', pattern : "${sample_id}.trim.fastq.gz", enabled : params.	trimoutput
+	publishDir "${outdir}/trimmomatic/logs", mode: 'copy', pattern : "${sample_id}.trimmomatic.stats.log", enabled : params.trimoutput
 
 	input:
 	set sample_id, file(reads) from reads_ch2
@@ -169,7 +173,7 @@ process trim {
 process bowtie2 {
 	tag { sample_id }
 
-	publishDir "${outdir}/bowtie2/logs", mode: 'copy', pattern : "${sample_id}.bowtie2.stats.log"
+	publishDir "${outdir}/bowtie2/logs", mode: 'copy', pattern : "${sample_id}.bowtie2.stats.log", enabled: params.bowtieoutput
 
 	input:
 	set sample_id, file(reads) from trimmed_files
@@ -187,7 +191,7 @@ process bowtie2 {
 process filter {
 	tag { sample_id }
 
-	publishDir "${outdir}/bowtie2", mode: 'copy', pattern : "${sample_id}.uniq.{bam,bam.bai}"
+	publishDir "${outdir}/bowtie2", mode: 'copy', pattern : "${sample_id}.uniq.{bam,bam.bai}", enabled : params.samtoolsoutput
 
 	input:
 	set sample_id, file(sam) from bowtie_files
@@ -314,7 +318,11 @@ def helpMessage() {
 	log.info "--trimmo_threads     INT    Threads for trimmomatic                    Optional (3)"
 	log.info "--samtools_threads   INT    Threads for samtools                       Optional (4)"
 	log.info ""
+	log.info "--fastqcoutput       FLAG   Export fastqc logs (html and zip)          Optional (false)"
+	log.info "--trimoutput         FLAG   Export trimmomatic logs and trimmed fastq  Optional (false)"
 	log.info "--threeendcount      FLAG   Export 3'end read count                    Optional (false)"
+	log.info "--bowtieoutput       FLAG   Export Bowtie's logs                       Optional (false)"
+	log.info "--samtoolsoutput     FLAG   Export unique BAM files                    Optional (false)"
 	log.info ""
 	log.info "--split              FLAG   Split count files by RNA                   Optional (false)"
 	log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"
