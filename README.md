@@ -58,7 +58,7 @@ fastq files).
 To have the workflow installed you simply need to clone this repository.
 
 ```sh
-git clone https://github.com/EpiRnaTools/ribomethseq-nf
+git clone https://github.com/RibosomeCRCL/RiboMethSeq-Nf
 ```
 
 ### Conda environment
