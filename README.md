@@ -213,7 +213,7 @@ Easiest way to get you started for the non-bioinformatician
 Then:
 
 ```
-nextflow EpiRnaTools/ribomethseq-nf -profile conda,human --scheduler 'pbs' --qsize 10 --fqdir '/path/to/fastq/files'
+nextflow RibosomeCRCL/ribomethseq-nf -profile conda,human --scheduler 'pbs' --qsize 10 --fqdir '/path/to/fastq/files'
 ```
 
 This will automatically retrieve the nextflow pipeline from GitHub, build the
