@@ -201,9 +201,10 @@ process multiqc {
 	publishDir "${outdir}", mode: 'copy', pattern: 'multiqc_report.html'
 
 	input:
-	file('*') from fastqc_ch.collect()
-	file('*') from trimmomatic_logs.collect()
-	file('*') from bowtie_logs.collect()
+	file('*') 
+	file('*')
+	file('*') 
+ 
 
 	output:
 	file('multiqc_report.html')
@@ -223,8 +224,8 @@ process counts {
 	tuple val(sample_id), file(filtered_bam)
 
 	output:
-	//tuple val(sample_id), file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv"), emit: allcounts_files
-	tuple val(sample_id), file("${sample_id}.5_counts.csv"), emit: 5counts_files
+	tuple val(sample_id), file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv")
+	tuple val(sample_id), file("${sample_id}.5_counts.csv")
 	script:
 	"""
 	bedtools genomecov -d -3 -ibam ${filtered_bam} > ${sample_id}.3_counts.csv
@@ -260,7 +261,7 @@ process report {
 	publishDir "${outdir}", mode: 'move'
 
 	input:
-	file('*') from counts_ch2.collect()
+	file('*')
 
 	output:
 	file("rms_report.html")
@@ -277,17 +278,19 @@ process report {
 
 workflow {
     fastq_files = Channel
-		.fromPath( fqdir + "/*${params.fastq_pattern}" )
-		.ifEmpty { error "No fastq file matching \'${params.fastq_pattern}\' in: ${fqdir}" }
-		.map { fq -> [
-			file(fq).getName().replaceAll("${params.fastq_pattern}\$",''),
-			file(fq)
-		]}
+				.fromPath( fqdir + "/*${params.fastq_pattern}" )
+				.ifEmpty { error "No fastq file matching \'${params.fastq_pattern}\' in: ${fqdir}" }
+				.map { fq -> [
+					file(fq).getName().replaceAll("${params.fastq_pattern}\$",''),
+					file(fq)
+				]}
     fastqc(fastq_files)
 	trim(fastq_files)
 	bowtie2(trim.out.trim_files)
 	filter_sam(bowtie2.out.aligned_files)
 	counts(filter_sam.out.filtered_files)
+	multiqc(fastqc.out[1].collect(),trim.out[1].collect(),bowtie2.out[1].collect())
+	report(counts.out[1].collect())
 }
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
