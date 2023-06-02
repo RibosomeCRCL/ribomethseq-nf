@@ -112,19 +112,8 @@ log.info ""
 
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                                      MAIN
+                                    PROCESSES
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-
-Channel
-	.fromPath( fqdir + "/*${params.fastq_pattern}" )
-	.ifEmpty { error "No fastq file matching \'${params.fastq_pattern}\' in: ${fqdir}" }
-	.map { fq -> [
-		file(fq).getName().replaceAll("${params.fastq_pattern}\$",''),
-		file(fq)
-	]}
-	.view()
-	.into { reads_ch; reads_ch2; reads_ch3 }
-
 
 process fastqc {
 	tag { sample_id }
@@ -133,11 +122,11 @@ process fastqc {
 	publishDir "${outdir}/fastqc/zip", mode: 'copy', pattern: '*_fastqc.zip', enabled : params.fastqcoutput
 
 	input:
-	set sample_id, file(reads) from reads_ch
+	tuple val(sample_id), file(reads)
 
 	output:
 	file "*_fastqc.html"
-	file "*_fastqc.zip" into fastqc_ch, fastqc_ch2
+	path "*_fastqc.zip"
 
 	"""
 	fastqc --threads ${params.fastqc_threads} \\
@@ -152,11 +141,11 @@ process trim {
 	publishDir "${outdir}/trimmomatic/logs", mode: 'copy', pattern : "${sample_id}.trimmomatic.stats.log", enabled : params.trimoutput
 
 	input:
-	set sample_id, file(reads) from reads_ch2
+	tuple val(sample_id), file(reads) 
 
 	output:
-	set sample_id, file("${sample_id}.trim.fastq.gz") into trimmed_files, trimmed_files2
-	file("${sample_id}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
+	tuple val(sample_id), file("${sample_id}.trim.fastq.gz"), emit: trim_files
+	file("${sample_id}.trimmomatic.stats.log")
 
 	"""
 	trimmomatic SE -phred33 -threads ${params.trimmo_threads} \\
@@ -176,11 +165,11 @@ process bowtie2 {
 	publishDir "${outdir}/bowtie2/logs", mode: 'copy', pattern : "${sample_id}.bowtie2.stats.log", enabled: params.bowtieoutput
 
 	input:
-	set sample_id, file(reads) from trimmed_files
+	tuple val(sample_id), file(reads)
 
 	output:
-	set sample_id, file("${sample_id}.sam") into bowtie_files
-	file("${sample_id}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
+	tuple val(sample_id), file("${sample_id}.sam"), emit: aligned_files
+	file("${sample_id}.bowtie2.stats.log") 
 
 	"""
 	bowtie2 -x ${params.bowtie_index} --threads ${params.bowtie_threads} \\
@@ -188,16 +177,16 @@ process bowtie2 {
 	"""
 }
 
-process filter {
+process filter_sam {
 	tag { sample_id }
 
 	publishDir "${outdir}/bowtie2", mode: 'copy', pattern : "${sample_id}.uniq.{bam,bam.bai}", enabled : params.samtoolsoutput
 
 	input:
-	set sample_id, file(sam) from bowtie_files
+	tuple val(sample_id), file(sam)
 
 	output:
-	set sample_id, file("${sample_id}.uniq.bam") into filtered_bam_ch
+	tuple val(sample_id), file("${sample_id}.uniq.bam"), emit: filtered_files
 
 	"""
 	set -o pipefail
@@ -231,11 +220,11 @@ process counts {
 	publishDir "${outdir}/counts/3p/", mode:'copy', pattern: "${sample_id}.3_counts.csv", enabled: params.threeendcount
 
 	input:
-	set sample_id, file(filtered_bam) from filtered_bam_ch
+	tuple val(sample_id), file(filtered_bam)
 
 	output:
-	set sample_id, file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv") into counts_ch
-	set sample_id, file("${sample_id}.5_counts.csv") into counts_ch2
+	//tuple val(sample_id), file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv"), emit: allcounts_files
+	tuple val(sample_id), file("${sample_id}.5_counts.csv"), emit: 5counts_files
 	script:
 	"""
 	bedtools genomecov -d -3 -ibam ${filtered_bam} > ${sample_id}.3_counts.csv
@@ -280,6 +269,25 @@ process report {
 	"""
 	Rscript ${baseDir}/Rscripts/QC/generate_report.R .
 	"""
+}
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                                      WORKFLOW
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+workflow {
+    fastq_files = Channel
+		.fromPath( fqdir + "/*${params.fastq_pattern}" )
+		.ifEmpty { error "No fastq file matching \'${params.fastq_pattern}\' in: ${fqdir}" }
+		.map { fq -> [
+			file(fq).getName().replaceAll("${params.fastq_pattern}\$",''),
+			file(fq)
+		]}
+    fastqc(fastq_files)
+	trim(fastq_files)
+	bowtie2(trim.out.trim_files)
+	filter_sam(bowtie2.out.aligned_files)
+	counts(filter_sam.out.filtered_files)
 }
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
