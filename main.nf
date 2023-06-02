@@ -241,7 +241,7 @@ process split {
 	when: params.split
 
 	input:
-	set sample_id, file(counts5), file(counts3) from counts_ch
+	tuple val(sample_id), file(counts5), file(counts3)
 
 	output:
 	file("${sample_id}.58S.csv")
@@ -289,6 +289,9 @@ workflow {
 	bowtie2(trim.out.trim_files)
 	filter_sam(bowtie2.out.aligned_files)
 	counts(filter_sam.out.filtered_files)
+	if(params.split) {
+		split(counts.out[0])
+	}
 	multiqc(fastqc.out[1].collect(),trim.out[1].collect(),bowtie2.out[1].collect())
 	report(counts.out[1].collect())
 }
