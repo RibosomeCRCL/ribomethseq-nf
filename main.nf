@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-// Copyright (C) 2022 CRCL
+// Copyright (C) 2023 CRCL
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
