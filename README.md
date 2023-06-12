@@ -22,7 +22,7 @@
 The following software program/packages are also required to run this pipeline.
 
   - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-  - [samtools](https://github.com/samtools/samtools) [>=1.15]
+  - [samtools](https://github.com/samtools/samtools) [>=1.16.1]
   - [bedtools](https://github.com/arq5x/bedtools2)
   - [Trimmomatic](https://github.com/usadellab/Trimmomatic)
   - [FastQC](https://github.com/s-andrews/FastQC)

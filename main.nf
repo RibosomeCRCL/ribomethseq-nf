@@ -203,7 +203,7 @@ process filter {
 	set -o pipefail
 	samtools view ${params.samtools_opts} ${sam} | \\
 	samtools sort -@${params.samtools_threads} -o ${sample_id}.uniq.bam
-	samtools index ${sample_id}.uniq.bam -o ${sample_id}.uniq.bam.bai
+	samtools index -o ${sample_id}.uniq.bam.bai ${sample_id}.uniq.bam
 	"""
 }
 
