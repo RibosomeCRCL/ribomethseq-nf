@@ -1,149 +1,170 @@
-###
-### Building all required tools
-###
-FROM debian:bullseye-20221219-slim as builder
+# --------------------------------
+#  ribomethseq-nf production image
+# --------------------------------
+# 
+#  - Base on the OFFICIAL rocker/r-ver image: R is preinstalled and versioned,
+#    no more compiling R from source. r-ver:4.5.x is built on Ubuntu 24.04 (noble).
+#  - R packages come from the Posit Package Manager BINARY repo, pinned to a
+#    dated snapshot (SNAPSHOT) -> reproducible AND no R-side compilation.
+#  - Multi-stage: the `builder` stage holds the compilers / -dev headers and
+#    builds the only tool that needs compiling (samtools, htslib bundled).
+#    Everything else is a prebuilt binary. The final stage copies the binaries
+#    in and keeps only runtime shared libraries -> slim image.
+#  - builder and final share the SAME rocker base => guaranteed glibc/ABI match.
+#
+#  Layer ordering: system + processing tools first (stable), R packages last
+#  (volatile) so editing the R package list only rebuilds the top layers and
+#  never invalidates the tool / index-building layers.
+#
+#  Build:  cd docker && docker build -t ribomethseq-nf:1.1 -f Dockerfile.prod .
+#
+
+ARG R_VERSION=4.5.3
+# rocker/r-ver:4.5.x is built on Ubuntu 24.04 (noble); keep DISTRO in sync with
+# the base tag so the Posit PM binary path resolves correctly.
+ARG DISTRO=noble
+# Posit Package Manager snapshot date -> pins all R package versions.
+ARG SNAPSHOT=2026-05-01
+
+# Tool versions
+ARG SAMTOOLS_VERSION=1.23.1
+ARG BEDTOOLS_VERSION=2.31.0
+ARG BOWTIE2_VERSION=2.5.5
+ARG TRIMMOMATIC_VERSION=0.39
+ARG FASTQC_VERSION=0.12.1
+ARG MULTIQC_VERSION=1.35
+ARG PANDOC_VERSION=3.5
+
+
+#
+#  Stage 1 : builder
+#
+FROM rocker/r-ver:${R_VERSION} AS builder
+
+ARG SAMTOOLS_VERSION
+ARG BEDTOOLS_VERSION
+ARG BOWTIE2_VERSION
+ARG TRIMMOMATIC_VERSION
+ARG FASTQC_VERSION
 
 RUN mkdir -p /home/rms/bin
 WORKDIR /home/rms/src
 
-#
-# R
-#
-RUN    apt-get update                                \
-    && apt-get install -y wget gcc g++ gfortran make \
-        cmake pkg-config xorg-dev xvfb               \
-        libjpeg-dev libpng-dev libtiff-dev           \
-        libc6-dev libbz2-dev                         \
-        libcurl4-openssl-dev libgomp1 liblzma-dev    \
-        libpcre++-dev libpcre2-dev libquadmath0      \
-        libreadline-dev zlib1g-dev libcairo2-dev     \
-        libxml2-dev
+RUN    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        wget ca-certificates unzip zip bzip2 \
+        gcc make \
+        zlib1g-dev libbz2-dev liblzma-dev libdeflate-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN    wget https://cloud.r-project.org/src/base/R-4/R-4.2.2.tar.gz \
-    && tar xzf R-4.2.2.tar.gz
+# samtools (htslib is bundled in the release tarball; we don't ship bgzip/tabix
+# because the pipeline only calls samtools view/sort/index)
+RUN    wget -q https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 \
+    && tar xjf samtools-${SAMTOOLS_VERSION}.tar.bz2 \
+    && cd samtools-${SAMTOOLS_VERSION} \
+    && ./configure --without-curses \
+    && make -j4 && mv samtools /home/rms/bin
 
-RUN    cd R-4.2.2 \
-    && ./configure --prefix=/usr/R --without-aqua --disable-nls --disable-java \
-    && make all && make install
+# bedtools (static binary; 2.31.0 ships `bedtools.static`)
+RUN    wget -q https://github.com/arq5x/bedtools2/releases/download/v${BEDTOOLS_VERSION}/bedtools.static \
+    && chmod +x bedtools.static \
+    && mv bedtools.static /home/rms/bin/bedtools
 
-ENV PATH="/usr/R/bin:${PATH}"
-
-# factoextra imports tidyr, reshape2
-# tidyr imports dplyr, tibble
-RUN R -e "install.packages('ade4',       dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('factoextra', dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('rmarkdown',  dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('ggplot2',    dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('pheatmap',   dependencies=c('Depends', 'Imports', 'LinkingTo'), repos='http://cran.rstudio.com/')"
-
-
-# more requirements
-RUN    apt-get update                                           \
-    && apt-get install -y autoconf automake perl libdeflate-dev \
-                          unzip zip default-jre python3 pip
-
-#
-# htslib / samtools
-#
-RUN    wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2 \
-    && tar xjf htslib-1.16.tar.bz2
-
-RUN    cd htslib-1.16 && autoreconf -i                 \
-    && ./configure --disable-plugins --disable-libcurl \
-    && make -j4 libhts.a bgzip htsfile tabix           \
-    && mv bgzip htsfile tabix /home/rms/bin
-
-RUN    wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-1.16.1.tar.bz2 \
-    && tar xjf samtools-1.16.1.tar.bz2
-
-RUN    cd samtools-1.16.1 && autoheader && autoconf -Wno-syntax                     \
-    && ./configure --without-curses --without-ncursesw --with-htslib=../htslib-1.16 \
-    && make && mv samtools /home/rms/bin
-
-#
-# bedtools
-#
-RUN    wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
-    && chmod +x bedtools.static.binary \
-    && mv bedtools.static.binary /home/rms/bin/bedtools
-
-#
-# bowtie2
-#
-RUN    wget https://github.com/BenLangmead/bowtie2/releases/download/v2.5.0/bowtie2-2.5.0-linux-x86_64.zip \
-    && unzip bowtie2-2.5.0-linux-x86_64.zip \
-    && cd bowtie2-2.5.0-linux-x86_64 \
-    && mv bowtie2 bowtie2-align-s bowtie2-align-l       \
+# bowtie2 (prebuilt linux binaries)
+RUN    wget -q https://github.com/BenLangmead/bowtie2/releases/download/v${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip \
+    && unzip -q bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip \
+    && cd bowtie2-${BOWTIE2_VERSION}-linux-x86_64 \
+    && mv bowtie2 bowtie2-align-s bowtie2-align-l \
           bowtie2-build bowtie2-build-s bowtie2-build-l \
           bowtie2-inspect bowtie2-inspect-s bowtie2-inspect-l /home/rms/bin
 
-#
-# Reduce size of compiled binaries
-#
+# strip compiled/prebuilt binaries to reduce size
 RUN    cd /home/rms/bin \
     && strip bowtie2-align-s bowtie2-align-l     \
              bowtie2-build-s bowtie2-build-l     \
              bowtie2-inspect-s bowtie2-inspect-l \
-             bedtools samtools tabix bgzip htsfile
+             bedtools samtools
 
-#
-# trimmomatic
-#
-RUN    wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip \
-    && unzip Trimmomatic-0.39.zip \
+# Trimmomatic (jar) + FastQC
+RUN    wget -q http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-${TRIMMOMATIC_VERSION}.zip \
+    && unzip -q Trimmomatic-${TRIMMOMATIC_VERSION}.zip \
     && mkdir -p /home/rms/Trimmomatic \
-    && mv Trimmomatic-0.39/trimmomatic-0.39.jar /home/rms/Trimmomatic
+    && mv Trimmomatic-${TRIMMOMATIC_VERSION}/trimmomatic-${TRIMMOMATIC_VERSION}.jar /home/rms/Trimmomatic
 
-COPY trimmomatic /home/rms/bin
-
-#
-# FastQc
-#
-RUN    wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip \
-    && unzip fastqc_v0.11.9.zip \
+RUN    wget -q https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FASTQC_VERSION}.zip \
+    && unzip -q fastqc_v${FASTQC_VERSION}.zip \
     && chmod +x FastQC/fastqc && mv FastQC /home/rms \
     && cd /home/rms/bin && ln -s ../FastQC/fastqc
 
-#
-# MultiQC
-#
-RUN pip install multiqc
 
 #
-# pandoc
+#  Stage 2 : final  (runtime only)
 #
-RUN    wget https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-1-amd64.deb \
-    && dpkg -i pandoc-2.19.2-1-amd64.deb \
-    && mv /usr/bin/pandoc /usr/local/bin
+FROM rocker/r-ver:${R_VERSION}
 
-###
-### Final image with only runtime requirements
-###
-FROM debian:bullseye-20221219-slim
+ARG DISTRO
+ARG SNAPSHOT
+ARG MULTIQC_VERSION
+ARG PANDOC_VERSION
 
-RUN    apt-get update                                 \
-    && apt-get install -y --no-install-recommends     \
-        procps xvfb xauth xfonts-base xfonts-100dpi   \
-        xfonts-75dpi libjpeg62 libpng16-16 libtiff5   \
-        libbz2-1.0 libc6 libgfortran5 libgomp1        \
-        libpcre2-8-0 libquadmath0 libreadline8        \
-        liblzma5 zlib1g libcairo2 libxml2 libdeflate0 \
-        perl python3 default-jre unzip zip
+LABEL org.opencontainers.image.title="ribomethseq-nf" \
+      org.opencontainers.image.description="RiboMethSeq data processing" \
+      org.opencontainers.image.source="https://github.com/RibosomeCRCL/ribomethseq-nf" \
+      maintainer="anthony.ferrari@lyon.unicancer.fr"
 
-COPY --from=builder /usr/R /usr/R
-COPY --from=builder /usr/lib/python3 /usr/lib/python3
-COPY --from=builder /usr/lib/python3.9 /usr/lib/python3.9
-COPY --from=builder /usr/local/lib/python3.9 /usr/local/lib/python3.9
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /home/rms/FastQC /home/rms/FastQC
+#
+# Runtime dependencies (noble package names):
+#   - shared libs for the copied tool binaries (samtools, bowtie2)
+#   - JRE + perl for Trimmomatic / FastQC
+#   - python3 + venv for MultiQC (Ubuntu 24.04 is PEP-668 "externally managed",
+#     so MultiQC goes in its own venv rather than the system interpreter)
+#   - cairo / png / font libs for headless R graphics (pheatmap/ggplot)
+#   - libuv1 is needed by the R `fs` pkg, pulled in when rmarkdown compiles the
+#     bslib (Bootstrap 5) theme of the QC report at render time.
+#
+RUN    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        procps wget ca-certificates \
+        zlib1g libbz2-1.0 liblzma5 libdeflate0 libgomp1 libuv1 \
+        default-jre perl \
+        python3 python3-venv \
+        libcairo2 libpng16-16 libfontconfig1 libfreetype6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the tool binaries / jars built in the builder stage
+COPY --from=builder /home/rms/bin         /home/rms/bin
 COPY --from=builder /home/rms/Trimmomatic /home/rms/Trimmomatic
-COPY --from=builder /home/rms/bin /home/rms/bin
+COPY --from=builder /home/rms/FastQC      /home/rms/FastQC
 
-ENV PATH="/usr/R/bin:${PATH}"
-ENV PATH="/home/rms/bin:${PATH}"
+# trimmomatic wrapper (calls the jar as `trimmomatic [args]`, same as conda)
+COPY trimmomatic /home/rms/bin/trimmomatic
+RUN chmod +x /home/rms/bin/trimmomatic
+
+# MultiQC in an isolated venv
+RUN    python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir "multiqc==${MULTIQC_VERSION}"
+
+ENV PATH="/home/rms/bin:/opt/venv/bin:${PATH}"
+
+# pandoc (required by rmarkdown; not shipped in rocker/r-ver)
+RUN    wget -q https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb \
+    && dpkg -i pandoc-${PANDOC_VERSION}-1-amd64.deb \
+    && rm pandoc-${PANDOC_VERSION}-1-amd64.deb
+
+
+# pin the repo to a dated Posit PM snapshot serving BINARY packages for ${DISTRO}.
+# The HTTPUserAgent line is what makes PPM serve binaries instead of sources.
+RUN    RPROFILE="$(R RHOME)/etc/Rprofile.site" \
+    && echo "options(repos = c(CRAN = 'https://packagemanager.posit.co/cran/__linux__/${DISTRO}/${SNAPSHOT}'))" >> "${RPROFILE}" \
+    && echo "options(HTTPUserAgent = sprintf('R/%s R (%s)', getRversion(), paste(getRversion(), R.version\$platform, R.version\$arch, R.version\$os)))" >> "${RPROFILE}"
+
+# report dependencies
+# bslib is pulled by rmarkdown for the Bootstrap 5 themed QC report.
+RUN R -e "pkgs <- c('ade4','ggplot2','pheatmap','tibble','tidyr','reshape2','dplyr','rmarkdown'); \
+          install.packages(pkgs); \
+          missing <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+          if (length(missing)) stop('Missing R packages: ', paste(missing, collapse=', '))"
 
 WORKDIR /home/rms
-
-MAINTAINER anthony.ferrari@lyon.unicancer.fr
 
 CMD ["/bin/bash"]

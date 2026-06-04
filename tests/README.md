@@ -13,8 +13,6 @@ $ make help
 --------------------------------------------------
 test : test workflow using user's local PATH
 
-test-conda : test workflow using conda profile
-
 test-docker : test workflow using docker profile
 
 test-singularity : test workflow using singularity profile
@@ -27,12 +25,6 @@ clean : clean local nextflow stuff and results
 
 If all the required dependencies are installed in your local environment and all
 the software are available on your PATH, you can simply run `make test`.
-
-## Conda installation
-
-Once you have set up local conda envs (preferred over building the environments
-each time the workflow is launched) and modified the `conda` profile accordingly
-in the config, you can test the workflow with `make test-conda`.
 
 ## Docker installation
 

@@ -1,38 +1,39 @@
-# Execution environments
+# Container image
 
-### Dockerfile
-
-This is the file used to test/debug the docker image. It is built upon debian 11
-(bullseye) and it contains **everything** (libraries required for compilation,
-all sources, ...) and it is then quite huge (~2.7Gb).
+The pipeline ships a single container image holding **all** tools (processing +
+R reporting). The recommended way to get it is to pull the prebuilt image from
+GHCR (see the main README) — you normally do **not** need to build it yourself.
 
 ### Dockerfile.prod
 
-All tools are built like it is done in Dockerfile but the final image (still
-based on debian 11) is reduced to only (hopefully) the runtime requirements.
-This image is much "lighter" than the dev one and is about 1.3Gb in size. The
-compressed docker archive is ~490Mb.
+The production image. It is built on the official **`rocker/r-ver`** base
+(versioned R on Ubuntu LTS) using a multi-stage build:
 
-### Dockerfile.conda - DEPRECATED
+- the `builder` stage holds the compilers / `-dev` headers and builds the only
+  tool that is compiled (samtools, htslib bundled); every other tool is a
+  prebuilt binary;
+- the final stage copies the binaries in and keeps only runtime shared
+  libraries, for a slimmer image.
 
-Original docker image built with conda.
+R packages are installed from the **Posit Package Manager** binary repo pinned to
+a dated snapshot, so the package set is reproducible. All tool/R versions are set
+via `ARG`s at the top of the file. See the header comments in `Dockerfile.prod`
+for the rationale and the noble-specific notes.
+
+To build it locally (optional):
+
+```sh
+cd docker
+docker build -t ribomethseq-nf:1.1 -f Dockerfile.prod .
+```
+
+### Dockerfile
+
+Legacy variant (everything in a single stage). Kept for reference but
+the maintained image is `Dockerfile.prod`.
 
 ### trimmomatic
 
-This is an helper wrapper script that allows to call trimmomatic in the form
-`trimmomatic [args]` as it is done when built with conda. This way calling
-trimmomatic in conda, docker or singularity environments is done exactly the
-same way.
-
-You may need to do something similar if you are using the trimmomatic jar file
-directly (copying it into your `PATH` + adapting the path to trimmotatic jar
-	file should do the trick).
-
-### rms-processing.yml and rms-report.yml
-
-Initially we tried to create a single conda environment but due to conda solving
-time issue we chose to split the environment dedicated to sequencing data processing
-and the one for creating a report (R packages).
-
-The recommended way to use them is to create both these conda envs in your system
-and adapt the conda profile in `nextflow.config`.
+A small wrapper script so Trimmomatic can be called as `trimmomatic [args]`
+(matching the way it is invoked in the pipeline). It is copied into the image's
+`PATH` and points to the bundled `trimmomatic-<version>.jar`.
