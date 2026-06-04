@@ -1,7 +1,6 @@
 # ribomethseq-nf
 
-[![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A521.04.0-23aa62.svg?labelColor=000000)](https://www.nextflow.io/)
-[![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
+[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A520.10.0-23aa62.svg?labelColor=000000)](https://www.nextflow.io/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
@@ -10,35 +9,39 @@
 
 ### Versions
 
+ - 1.1 : reproducible container image published on GHCR; added the `human_full`
+   profile (rRNA + snRNA); refreshed QC report; dropped conda in favour of
+   Docker/Singularity.
  - 1.0 : first release
 
 ## Software requirements
 
-[Nextflow](https://www.nextflow.io) (**21.04 or later**) is required to run this pipeline.
+Only two things are needed on your machine:
+
+  - [Nextflow](https://www.nextflow.io) (**20.10.0 or later**)
+  - a container engine: [Docker](https://www.docker.com/) (local workstation) or
+    [Singularity/Apptainer](https://apptainer.org/) (HPC).
 
 > **Warning**
-> Older Nextflow versions before 20.10.0 will likely fail to run RiboMethSeq-nf.
+> Nextflow versions older than 20.10.0 will likely fail to run RiboMethSeq-nf
+> because of required DSL1 syntax. This will be changed in a next release.
 
-The following software program/packages are also required to run this pipeline.
+All the underlying tools ship **inside the container image** published on GHCR, so
+there is nothing else to install. For reference, the image bundles:
 
-  - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-  - [samtools](https://github.com/samtools/samtools) [>=1.16.1]
-  - [bedtools](https://github.com/arq5x/bedtools2)
-  - [Trimmomatic](https://github.com/usadellab/Trimmomatic)
-  - [FastQC](https://github.com/s-andrews/FastQC)
-  - [MultiQC](https://github.com/ewels/MultiQC)
-  - [pandoc](https://pandoc.org/)
-  - [R](https://cran.r-project.org) and the following libraries :
-    + ade4
-    + dplyr
-    + tidyr
-    + tibble
-    + rmarkdown
-    + pheatmap
+  - [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml),
+    [samtools](https://github.com/samtools/samtools) (>=1.16.1),
+    [bedtools](https://github.com/arq5x/bedtools2),
+    [Trimmomatic](https://github.com/usadellab/Trimmomatic),
+    [FastQC](https://github.com/s-andrews/FastQC),
+    [MultiQC](https://github.com/ewels/MultiQC),
+    [pandoc](https://pandoc.org/)
+  - [R](https://cran.r-project.org) with: ade4, dplyr, tidyr, tibble, reshape2,
+    ggplot2, pheatmap, rmarkdown
 
-
-If you do not want to install them manually, you can use either docker/singularity
-or conda to build the required environment (see Installation section)
+If you prefer to run without a container, these tools must be available on your
+`PATH` (use the no-container invocation, i.e. omit the `docker`/`singularity`
+profile).
 
 Note: Earlier version of samtools may work as well but will retain a few more
 SAM records due to an issue in expression handling in `samtools view` prior to
@@ -61,88 +64,48 @@ fastq files).
 
 ## Installation
 
-To have the workflow installed you simply need to clone this repository.
+You do not strictly need to install the pipeline: Nextflow can pull it straight
+from GitHub at run time (see [Quickstart](#quickstart)). If you prefer a local
+copy:
 
 ```sh
-git clone https://github.com/RibosomeCRCL/riboMethseq-nf
+git clone https://github.com/RibosomeCRCL/ribomethseq-nf
 ```
 
-### Conda environment
+### Getting the container image
 
-Perhaps the easiest way to have a proper environment to run the pipeline is to
-use conda. Two YAML files are provided : `docker/rms-processing.yml` and
-`docker/rms-report.yml` corresponding to two distinct environments. The former
-contains requirements for the processing part of the pipeline (samtools, bowtie2, ...)
-and the latter is dedicated to the report generation. We chose to split the two
-environment because solving the full conda environment could take a really long time.
+The container image (all processing tools **and** the R reporting environment) is
+published on the GitHub Container Registry (GHCR). It is pulled **automatically**
+the first time you run the workflow with the `docker` or `singularity` profile, so
+usually there is nothing to do.
 
-You can either directly use the conda profile provided in `nextflow.config`
-and the workflow will automatically build the environment at workflow
-initiation or you can build it in advance (**recommended**) with for instance the
-following command:
+To pull it manually:
 
 ```sh
-cd docker
-conda env create -f rms-processing.yml
-conda env create -f rms-report.yml
+# Docker
+docker pull ghcr.io/ribosomecrcl/ribomethseq-nf:1.1
+
+# Singularity / Apptainer (converts the OCI image to a .sif)
+singularity pull docker://ghcr.io/ribosomecrcl/ribomethseq-nf:1.1
 ```
 
-If you create the environment prior to running the workflow, you will then need
-to adapt the `process.conda` directives from the conda profile in `nextflow.config`
-as shown below :
+The tag used by the `docker` and `singularity` profiles is set in
+`nextflow.config` (`process.container`). Those profiles already bind the pipeline
+directory into the container so the bundled references/indexes are visible; if you
+need to bind **extra** paths of your infrastructure, append them to
+`process.containerOptions` in the relevant profile.
 
-```
-conda {
-	includeConfig "nf-config/exec.config"
-	conda.enabled = true
+### Building the image locally (optional)
 
-	process {
-		withName: 'fastqc|trim|bowtie2|filter|multiqc|counts' {
-			conda = "/path/to/your/conda/envs/rms-processing"
-		}
-		withName: 'split|report' {
-			conda = "/path/to/your/conda/envs/rms-report"
-		}
-	}
-}
-```
-
-### Docker image
-
-A docker image can also be built using the provided `docker/Dockerfile.prod`. The
-image will be built upon a debian 11 (bullseye) base image.
-
-To build the docker image :
+You normally don't need this, but the image can be rebuilt from
+`docker/Dockerfile.prod`:
 
 ```sh
 cd docker
-docker build -t ribomethseq-nf:1.0 -f Dockerfile.prod .
+docker build -t ghcr.io/ribosomecrcl/ribomethseq-nf:1.1 -f Dockerfile.prod .
 ```
 
-If you need to mount specific path(s) of your infrastructure, adapt the docker
-profile in the configuration file (`process.containerOptions`).
-
-More information on docker image content in the [docker README](docker/README.md).
-
-### Singularity image
-
-There is no proper singularity recipe provided at the moment, but in the meantime
-you can convert the Docker image to a singularity image.
-
-```sh
-# first, create an archive of the docker image
-docker save ribomethseq-nf:1.0 | gzip > ribomethseq-nf_1.0.tar.gz
-
-# (... somewhere else ...)
-# second, build a sif image from the archive
-singularity build [--sandbox] ribomethseq-nf_1.0.sif docker-archive://ribomethseq-nf_1.0.tar.gz
-```
-If problems occur with the loop device, the option --sandbox can be used to build the singularity image.
-
-The resulting ribomethseq-nf_1.0.sif must be in the directory specifed by `singularity.cacheDir` in the configuration file.
-
-If you need to mount specific path(s) of your infrastructure, adapt the Singularity
-profile in the configuration file (`process.containerOptions`).
+More information on the image content in the [docker README](docker/README.md).
 
 ### HPC environment
 
@@ -164,9 +127,6 @@ cd tests
 
 # Test with tools installed in PATH
 make test
-
-# Test with conda profile
-make test-conda
 
 # Test with docker profile on local machine
 make test-docker SCHEDULER=local
@@ -190,19 +150,35 @@ To run the workflow, you will need to specify both your execution environment
 and your species (human or mouse) of interest. This is done here by combining
 nextflow profiles.
 
-`human` and `mouse` profiles are already available. They gather for each species
-all the required reference data and the bowtie indexes to save you some time.
+Combine **one environment** profile (`docker` or `singularity`) with **one
+reference** profile:
 
-### Run the workflow for human data with docker
+| Reference profile | Reference set |
+|-------------------|---------------|
+| `human`           | human rRNA (5.8S, 18S, 28S, 5S) |
+| `human_full`      | human rRNA **+ snRNA** (U1, U2, U4, U5, U6, U12) |
+| `mouse`           | mouse rRNA (5.8S, 18S, 28S, 5S) |
+
+Each reference profile bundles the matching FASTA and the precomputed bowtie2
+index, so there is nothing to prepare.
+
+### Run on human data (rRNA only) with docker
 ```sh
 nextflow run /path/to/ribomethseq-nf -profile human,docker \
     --fqdir $FastqDir \
     --outdir $OutDir
 ```
 
-### Run the workflow for mouse data with conda
+### Run on human data with rRNA + snRNA, with docker
 ```sh
-nextflow run /path/to/ribomethseq-nf -profile mouse,conda \
+nextflow run /path/to/ribomethseq-nf -profile human_full,docker \
+    --fqdir $FastqDir \
+    --outdir $OutDir
+```
+
+### Run on mouse data with singularity (e.g. on a cluster)
+```sh
+nextflow run /path/to/ribomethseq-nf -profile mouse,singularity \
     --fqdir $FastqDir \
     --outdir $OutDir
 ```
@@ -213,18 +189,18 @@ See `Input parameters` section for a description of all available parameters.
 
 Easiest way to get you started for the non-bioinformatician
 
-  1. You just need nextflow and conda available on your system.
-  2. Find out what is your job scheduler. e.g. `pbs`
+  1. You just need Nextflow and a container engine (Docker or Singularity/Apptainer).
+  2. Find out what your job scheduler is, e.g. `pbs`.
 
 Then:
 
-```
-nextflow RibosomeCRCL/ribomethseq-nf -profile conda,human --scheduler 'pbs' --qsize 10 --fqdir '/path/to/fastq/files'
+```sh
+nextflow RibosomeCRCL/ribomethseq-nf -profile human,singularity --scheduler 'slurm' --qsize 10 --fqdir '/path/to/fastq/files'
 ```
 
-This will automatically retrieve the nextflow pipeline from GitHub, build the
-required conda environment and finally process your data. Output files will be
-located in current directory (default).
+This automatically retrieves the pipeline from GitHub, pulls the container image
+from GHCR and processes your data. Output files will be located in the current
+directory (default).
 
 ## Reference data used by the pipeline
 
@@ -240,13 +216,18 @@ The following reference rRNA are used :
 - https://www.ncbi.nlm.nih.gov/nuccore/NR_003278.3 (18S)
 - https://www.ncbi.nlm.nih.gov/nuccore/NR_003279.1 (28S)
 
-The associated fasta sequences for human and mouse organisms are stored in the
-`data/fasta` directory. It is possible to add other species, but it will be
-necessary to add a new profile in `nextflow.config` file for them.
+### Human snRNA (`human_full` profile)
 
-Precomputed `bowtie2` indexes are also already provided for both human and mouse
-in the folder `data/bowtie`. If you need to use your own index, you can specify
-it through the `--bowtie_index` parameter.
+In addition to the rRNA above, the `human_full` profile also analyses six snRNA:
+U1, U2, U4, U5, U6 and U12. Its bowtie2 index combines the human rRNA and snRNA
+references in a single index.
+
+The reference FASTA sequences are stored under `data/fasta` (snRNA in
+`data/fasta/snRNA`). Precomputed `bowtie2` indexes are provided in `data/bowtie`
+(`human`, `human_full`, `mouse`). It is possible to add other reference sets, but
+you will need to build an index and add a matching profile in `nextflow.config`.
+If you need to use your own index, you can specify it through the `--bowtie_index`
+parameter.
 
 ## Input parameters
 
@@ -338,4 +319,3 @@ It currently contains the following analyses :
 * A end-read count boxplot and RLE for each samples.
 * A distance heatmap to compare coverage profiles between samples.
 * A correspondence analysis of the coverage profiles.
-
