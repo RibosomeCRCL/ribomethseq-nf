@@ -11,8 +11,8 @@ script_dir <- dirname(normalizePath(get_option(commandArgs(trailingOnly=F), "--f
 ###
 library(ggplot2)
 library(dplyr)
-library(factoextra)
 library(pheatmap)
+# COA is computed with ade4 (see plot_COA.R); functions are called via ade4::
 
 args <- commandArgs(trailing = TRUE)
 datadir <- as.character(args[1])

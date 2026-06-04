@@ -7,14 +7,15 @@ This directory contains a small Rmarkdown script. It is run during the pipeline 
 
 ## Requirements
 
-For a conda environment:
+Dependencies used to render the report (already bundled in the container image):
   - xorg-libxrender
   - pandoc
   - r-ggplot2
   - r-pheatmap
-  - r-factoextra
+  - r-ade4
   - r-reshape2
   - r-dplyr
+  - r-tidyr
   - r-tibble
   - r-rmarkdown
  
