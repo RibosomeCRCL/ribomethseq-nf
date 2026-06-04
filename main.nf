@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-// Copyright (C) 2022 CRCL
+// Copyright (C) 2026 CRCL
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ if (params.help) exit 0, helpMessage()
 // Check and configure input/output parameters
 //
 if (!params.fqdir) {
-	exitMessage '--fqdir option must be set'
+  exitMessage '--fqdir option must be set'
 }
 
 def outdir = file(params.outdir, type: 'dir', checkIfExists: true).toAbsolutePath()
@@ -116,170 +116,166 @@ log.info ""
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
 Channel
-	.fromPath( fqdir + "/*${params.fastq_pattern}" )
-	.ifEmpty { error "No fastq file matching \'${params.fastq_pattern}\' in: ${fqdir}" }
-	.map { fq -> [
-		file(fq).getName().replaceAll("${params.fastq_pattern}\$",''),
-		file(fq)
-	]}
-	.view()
-	.into { reads_ch; reads_ch2; reads_ch3 }
+  .fromPath( fqdir + "/*${params.fastq_pattern}" )
+  .ifEmpty { error "No fastq file matching \'${params.fastq_pattern}\' in: ${fqdir}" }
+  .map { fq -> [
+    file(fq).getName().replaceAll("${params.fastq_pattern}\$",''),
+    file(fq)
+  ]}
+  .view()
+  .into { reads_ch; reads_ch2; reads_ch3 }
 
 
 process fastqc {
-	tag { sample_id }
+  tag { sample_id }
 
-	publishDir "${outdir}/fastqc", mode: 'copy', pattern: '*_fastqc.html', enabled : params.fastqcoutput
-	publishDir "${outdir}/fastqc/zip", mode: 'copy', pattern: '*_fastqc.zip', enabled : params.fastqcoutput
+  publishDir "${outdir}/fastqc", mode: 'copy', pattern: '*_fastqc.html', enabled : params.fastqcoutput
+  publishDir "${outdir}/fastqc/zip", mode: 'copy', pattern: '*_fastqc.zip', enabled : params.fastqcoutput
 
-	input:
-	set sample_id, file(reads) from reads_ch
+  input:
+  set sample_id, file(reads) from reads_ch
 
-	output:
-	file "*_fastqc.html"
-	file "*_fastqc.zip" into fastqc_ch, fastqc_ch2
+  output:
+  file "*_fastqc.html"
+  file "*_fastqc.zip" into fastqc_ch, fastqc_ch2
 
-	"""
-	fastqc --threads ${params.fastqc_threads} \\
-	--outdir . ${reads}
-	"""
+  """
+  fastqc --threads ${params.fastqc_threads} \\
+  --outdir . ${reads}
+  """
 }
 
 process trim {
-	tag { sample_id }
+  tag { sample_id }
 
-	publishDir "${outdir}/trimmomatic", mode: 'copy', pattern : "${sample_id}.trim.fastq.gz", enabled : params.	trimoutput
-	publishDir "${outdir}/trimmomatic/logs", mode: 'copy', pattern : "${sample_id}.trimmomatic.stats.log", enabled : params.trimoutput
+  publishDir "${outdir}/trimmomatic", mode: 'copy', pattern : "${sample_id}.trim.fastq.gz", enabled : params.  trimoutput
+  publishDir "${outdir}/trimmomatic/logs", mode: 'copy', pattern : "${sample_id}.trimmomatic.stats.log", enabled : params.trimoutput
 
-	input:
-	set sample_id, file(reads) from reads_ch2
+  input:
+  set sample_id, file(reads) from reads_ch2
 
-	output:
-	set sample_id, file("${sample_id}.trim.fastq.gz") into trimmed_files, trimmed_files2
-	file("${sample_id}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
+  output:
+  set sample_id, file("${sample_id}.trim.fastq.gz") into trimmed_files, trimmed_files2
+  file("${sample_id}.trimmomatic.stats.log") into trimmomatic_logs, trimmomatic_logs2
 
-	"""
-	trimmomatic SE -phred33 -threads ${params.trimmo_threads} \\
-	${reads} ${sample_id}.trim.fastq.gz \\
-	ILLUMINACLIP:${params.adapters}:2:30:10 \\
-	LEADING:${params.leading} \\
-	TRAILING:${params.trailing} \\
-	SLIDINGWINDOW:${params.slidingwindow} \\
-	AVGQUAL:${params.avgqual} \\
-	MINLEN:${params.minlen} 2> ${sample_id}.trimmomatic.stats.log
-	"""
+  """
+  trimmomatic SE -phred33 -threads ${params.trimmo_threads} \\
+  ${reads} ${sample_id}.trim.fastq.gz \\
+  ILLUMINACLIP:${params.adapters}:2:30:10 \\
+  LEADING:${params.leading} \\
+  TRAILING:${params.trailing} \\
+  SLIDINGWINDOW:${params.slidingwindow} \\
+  AVGQUAL:${params.avgqual} \\
+  MINLEN:${params.minlen} 2> ${sample_id}.trimmomatic.stats.log
+  """
 }
 
 process bowtie2 {
-	tag { sample_id }
+  tag { sample_id }
 
-	publishDir "${outdir}/bowtie2/logs", mode: 'copy', pattern : "${sample_id}.bowtie2.stats.log", enabled: params.bowtieoutput
+  publishDir "${outdir}/bowtie2/logs", mode: 'copy', pattern : "${sample_id}.bowtie2.stats.log", enabled: params.bowtieoutput
 
-	input:
-	set sample_id, file(reads) from trimmed_files
+  input:
+  set sample_id, file(reads) from trimmed_files
 
-	output:
-	set sample_id, file("${sample_id}.sam") into bowtie_files
-	file("${sample_id}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
+  output:
+  set sample_id, file("${sample_id}.sam") into bowtie_files
+  file("${sample_id}.bowtie2.stats.log") into bowtie_logs, bowtie_logs2
 
-	"""
-	bowtie2 -x ${params.bowtie_index} --threads ${params.bowtie_threads} \\
-	${params.bowtie_opts} ${reads} -S ${sample_id}.sam 2>> ${sample_id}.bowtie2.stats.log
-	"""
+  """
+  bowtie2 -x ${params.bowtie_index} --threads ${params.bowtie_threads} \\
+  ${params.bowtie_opts} ${reads} -S ${sample_id}.sam 2>> ${sample_id}.bowtie2.stats.log
+  """
 }
 
 process filter {
-	tag { sample_id }
+  tag { sample_id }
 
-	publishDir "${outdir}/bowtie2", mode: 'copy', pattern : "${sample_id}.uniq.{bam,bam.bai}", enabled : params.samtoolsoutput
+  publishDir "${outdir}/bowtie2", mode: 'copy', pattern : "${sample_id}.uniq.{bam,bam.bai}", enabled : params.samtoolsoutput
 
-	input:
-	set sample_id, file(sam) from bowtie_files
+  input:
+  set sample_id, file(sam) from bowtie_files
 
-	output:
-	set sample_id, file("${sample_id}.uniq.bam") into filtered_bam_ch
+  output:
+  set sample_id, file("${sample_id}.uniq.bam") into filtered_bam_ch
 
-	"""
-	set -o pipefail
-	samtools view ${params.samtools_opts} ${sam} | \\
-	samtools sort -@${params.samtools_threads} -o ${sample_id}.uniq.bam
-	samtools index -o ${sample_id}.uniq.bam.bai ${sample_id}.uniq.bam
-	"""
+  """
+  set -o pipefail
+  samtools view ${params.samtools_opts} ${sam} | \\
+  samtools sort -@${params.samtools_threads} -o ${sample_id}.uniq.bam
+  samtools index -o ${sample_id}.uniq.bam.bai ${sample_id}.uniq.bam
+  """
 }
 
 process multiqc {
 
-	publishDir "${outdir}", mode: 'copy', pattern: 'multiqc_report.html'
+  publishDir "${outdir}", mode: 'copy', pattern: 'multiqc_report.html'
 
-	input:
-	file('*') from fastqc_ch.collect()
-	file('*') from trimmomatic_logs.collect()
-	file('*') from bowtie_logs.collect()
+  input:
+  file('*') from fastqc_ch.collect()
+  file('*') from trimmomatic_logs.collect()
+  file('*') from bowtie_logs.collect()
 
-	output:
-	file('multiqc_report.html')
+  output:
+  file('multiqc_report.html')
 
-	"""
-	multiqc .
-	"""
+  """
+  multiqc .
+  """
 }
 
 process counts {
-	tag { sample_id }
-		
-	publishDir "${outdir}/counts/5p/", mode:'copy', pattern: "${sample_id}.5_counts.csv"
-	publishDir "${outdir}/counts/3p/", mode:'copy', pattern: "${sample_id}.3_counts.csv", enabled: params.threeendcount
+  tag { sample_id }
 
-	input:
-	set sample_id, file(filtered_bam) from filtered_bam_ch
+  publishDir "${outdir}/counts/5p/", mode:'copy', pattern: "${sample_id}.5_counts.csv"
+  publishDir "${outdir}/counts/3p/", mode:'copy', pattern: "${sample_id}.3_counts.csv", enabled: params.threeendcount
 
-	output:
-	set sample_id, file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv") into counts_ch
-	set sample_id, file("${sample_id}.5_counts.csv") into counts_ch2
-	script:
-	"""
-	bedtools genomecov -d -3 -ibam ${filtered_bam} > ${sample_id}.3_counts.csv
-	bedtools genomecov -d -5 -ibam ${filtered_bam} > ${sample_id}.5_counts.csv
-	"""
+  input:
+  set sample_id, file(filtered_bam) from filtered_bam_ch
+
+  output:
+  set sample_id, file("${sample_id}.5_counts.csv"), file("${sample_id}.3_counts.csv") into counts_ch
+  set sample_id, file("${sample_id}.5_counts.csv") into counts_ch2
+  script:
+  """
+  bedtools genomecov -d -3 -ibam ${filtered_bam} > ${sample_id}.3_counts.csv
+  bedtools genomecov -d -5 -ibam ${filtered_bam} > ${sample_id}.5_counts.csv
+  """
 }
 
 process split {
-	tag { sample_id }
-	
-	publishDir "${outdir}/split", mode: 'move', pattern: "${sample_id}.*.csv"
+  tag { sample_id }
+  
+  publishDir "${outdir}/split", mode: 'move', pattern: "${sample_id}.*.csv"
 
-	when: params.split
+  when: params.split
 
-	input:
-	set sample_id, file(counts5), file(counts3) from counts_ch
+  input:
+  set sample_id, file(counts5), file(counts3) from counts_ch
 
-	output:
-	file("${sample_id}.58S.csv")
-	file("${sample_id}.18S.csv")
-	file("${sample_id}.28S.csv")
-	file("${sample_id}.5S.csv")
+  output:
+  file("${sample_id}.*.csv")
 
-	script:
-	"""
-	Rscript ${baseDir}/Rscripts/Refine/r_refine.R ${counts5} ${counts3} \\
-	${params.fasta_58S} ${params.fasta_18S} ${params.fasta_28S} ${params.fasta_5S} \\
-	${sample_id}
-	"""
+  script:
+  """
+  Rscript ${baseDir}/Rscripts/Refine/r_refine.R ${counts5} ${counts3} \\
+  ${params.reference_fasta} ${sample_id}
+  """
 }
 
 process report {
-	publishDir "${outdir}", mode: 'move'
+  publishDir "${outdir}", mode: 'move'
 
-	input:
-	file('*') from counts_ch2.collect()
+  input:
+  file('*') from counts_ch2.collect()
 
-	output:
-	file("rms_report.html")
+  output:
+  file("rms_report.html")
 
-	script:
-	"""
-	Rscript ${baseDir}/Rscripts/QC/generate_report.R .
-	"""
+  script:
+  """
+  Rscript ${baseDir}/Rscripts/QC/generate_report.R .
+  """
 }
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -287,61 +283,61 @@ process report {
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
 def exitMessage(msg) {
-	log.error "${msg}"
-	this.helpMessage()
-	exit 1
+  log.error "${msg}"
+  this.helpMessage()
+  exit 1
 }
 
 def helpMessage() {
-	log.info ""
-	log.info "                           +++++++++++++++++++++++++"
-	log.info "                           +  ribomethseq-nf help  +"
-	log.info "                           +++++++++++++++++++++++++"
-	log.info ""
-	log.info "--fqdir              DIR    Fastq files location                       Required"
-	log.info "--fastq_pattern      STR    Pattern for fastq file selection           Optional (.fastq.gz)"
-	log.info ""
-	log.info "--adapters           FILE   (Trimmomatic) Path to illumina adapters    Optional (\$baseDir/data/adapters/TruSeq3-SE.fa)"
-	log.info "--leading            INT    (Trimmomatic) LEADING parameter            Optional (30)"
-	log.info "--trailing           INT    (Trimmomatic) TRAILING parameter           Optional (30)"
-	log.info "--slidingwindow      STR    (Trimmomatic) SLIDINGWINDOW parameter      Optional (4:15)"
-	log.info "--avgqual            INT    (Trimmomatic) AVGQUAL parameter            Optional (30)"
-	log.info "--minlen             INT    (Trimmomatic) MINLEN parameter             Optional (8)"
-	log.info ""
-	log.info "--bowtie_index       FILE   (Bowtie) Path to index                     Optional (\$baseDir/data/bowtie/human/human_index)"
-	log.info "--bowtie_opts        STR    (Bowtie) additional options                Optional (--sensitive -L 17)"
-	log.info ""
-	log.info "--samtools_opts      STR    (samtools) options to view                 Optional (--no-PG -h -u -d 'NM' -e '![XS]')"
-	log.info ""
-	log.info "--bowtie_threads     INT    Threads for bowtie                         Optional (7)"
-	log.info "--fastqc_threads     INT    Threads for fastqc                         Optional (2)"
-	log.info "--trimmo_threads     INT    Threads for trimmomatic                    Optional (3)"
-	log.info "--samtools_threads   INT    Threads for samtools                       Optional (4)"
-	log.info ""
-	log.info "--fastqcoutput       FLAG   Export fastqc logs (html and zip)          Optional (false)"
-	log.info "--trimoutput         FLAG   Export trimmomatic logs and trimmed fastq  Optional (false)"
-	log.info "--threeendcount      FLAG   Export 3'end read count                    Optional (false)"
-	log.info "--bowtieoutput       FLAG   Export Bowtie's logs                       Optional (false)"
-	log.info "--samtoolsoutput     FLAG   Export unique BAM files                    Optional (false)"
-	log.info ""
-	log.info "--split              FLAG   Split count files by RNA                   Optional (false)"
-	log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"
-	log.info "--qsize              INT    Max number of parallel jobs                Optional (20)"
-	log.info "--outdir             DIR    Output directory                           Optional (.)"
-	log.info "--logdir             DIR    Log directory                              Optional (\$outdir)"
-	log.info "--help               FLAG   Displays this help"
-	log.info ""
+  log.info ""
+  log.info "                           +++++++++++++++++++++++++"
+  log.info "                           +  ribomethseq-nf help  +"
+  log.info "                           +++++++++++++++++++++++++"
+  log.info ""
+  log.info "--fqdir              DIR    Fastq files location                       Required"
+  log.info "--fastq_pattern      STR    Pattern for fastq file selection           Optional (.fastq.gz)"
+  log.info ""
+  log.info "--adapters           FILE   (Trimmomatic) Path to illumina adapters    Optional (\$baseDir/data/adapters/TruSeq3-SE.fa)"
+  log.info "--leading            INT    (Trimmomatic) LEADING parameter            Optional (30)"
+  log.info "--trailing           INT    (Trimmomatic) TRAILING parameter           Optional (30)"
+  log.info "--slidingwindow      STR    (Trimmomatic) SLIDINGWINDOW parameter      Optional (4:15)"
+  log.info "--avgqual            INT    (Trimmomatic) AVGQUAL parameter            Optional (30)"
+  log.info "--minlen             INT    (Trimmomatic) MINLEN parameter             Optional (8)"
+  log.info ""
+  log.info "--bowtie_index       FILE   (Bowtie) Path to index                     Optional (\$baseDir/data/bowtie/human/human_index)"
+  log.info "--bowtie_opts        STR    (Bowtie) additional options                Optional (--sensitive -L 17)"
+  log.info ""
+  log.info "--samtools_opts      STR    (samtools) options to view                 Optional (--no-PG -h -u -d 'NM' -e '![XS]')"
+  log.info ""
+  log.info "--bowtie_threads     INT    Threads for bowtie                         Optional (7)"
+  log.info "--fastqc_threads     INT    Threads for fastqc                         Optional (2)"
+  log.info "--trimmo_threads     INT    Threads for trimmomatic                    Optional (3)"
+  log.info "--samtools_threads   INT    Threads for samtools                       Optional (4)"
+  log.info ""
+  log.info "--fastqcoutput       FLAG   Export fastqc logs (html and zip)          Optional (false)"
+  log.info "--trimoutput         FLAG   Export trimmomatic logs and trimmed fastq  Optional (false)"
+  log.info "--threeendcount      FLAG   Export 3'end read count                    Optional (false)"
+  log.info "--bowtieoutput       FLAG   Export Bowtie's logs                       Optional (false)"
+  log.info "--samtoolsoutput     FLAG   Export unique BAM files                    Optional (false)"
+  log.info ""
+  log.info "--split              FLAG   Split count files by RNA                   Optional (false)"
+  log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"
+  log.info "--qsize              INT    Max number of parallel jobs                Optional (20)"
+  log.info "--outdir             DIR    Output directory                           Optional (.)"
+  log.info "--logdir             DIR    Log directory                              Optional (\$outdir)"
+  log.info "--help               FLAG   Displays this help"
+  log.info ""
 }
 
 workflow.onComplete {
-	if (workflow.success) {
-		file(logdir + '/ribomethseq-nf.success').text = ''
-	} else {
-		def msg = "Launch directory : $workflow.launchDir\n"
-		msg += "Work directory : $workflow.workDir\n"
-		msg += "Exit status : $workflow.exitStatus\n"
-		msg += "Error message : $workflow.errorMessage\n"
-		msg += "Error report : $workflow.errorReport\n"
-		file(logdir + '/ribomethseq-nf.failure').text = msg
-	}
+  if (workflow.success) {
+    file(logdir + '/ribomethseq-nf.success').text = ''
+  } else {
+    def msg = "Launch directory : $workflow.launchDir\n"
+    msg += "Work directory : $workflow.workDir\n"
+    msg += "Exit status : $workflow.exitStatus\n"
+    msg += "Error message : $workflow.errorMessage\n"
+    msg += "Error report : $workflow.errorReport\n"
+    file(logdir + '/ribomethseq-nf.failure').text = msg
+  }
 }
