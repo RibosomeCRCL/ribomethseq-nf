@@ -10,7 +10,7 @@ output:
     highlight: tango
     toc: true
     toc_float:
-      collapsed: false
+      collapsed: true
     toc_depth: 2
     fig_width: 9
 ---
@@ -156,9 +156,9 @@ no correlation **1 (red)**.
 
 ```{r heatmap_corr, results = 'asis',fig.height=7}
 tryCatch({
-    plot_heatmap_corr(fcount_matrix)
+  plot_heatmap_corr(fcount_matrix)
 }, error = function(cond) {
-    cat("<div class=\"alert alert-warning\" role=\"alert\">Not enough samples to clusterize!</div>")
+  cat("<div class=\"alert alert-warning\" role=\"alert\">Not enough samples to clusterize!</div>")
 })
 ```
 
