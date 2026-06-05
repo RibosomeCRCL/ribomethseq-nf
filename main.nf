@@ -60,7 +60,10 @@ params.help          = false
 // counts
 params.threeendcount = false
 
-// report annotation (optional; both silent when unset)
+// report annotation (optional; all silent when unset)
+// species is normally set by the reference profile (human/human_full/mouse),
+// but can be overridden on the CLI.
+params.species       = null
 params.runid         = null
 params.tag           = null
 
@@ -109,6 +112,7 @@ log.info "Threads for fastqc               : ${params.fastqc_threads}"
 log.info "Threads for trimmomatic          : ${params.trimmo_threads}"
 log.info "Threads for samtools             : ${params.samtools_threads}"
 log.info "Export 3'end read count          : ${params.threeendcount}"
+if (params.species) log.info "Species                          : ${params.species}"
 if (params.runid) log.info "Run id                           : ${params.runid}"
 if (params.tag)   log.info "Run tag                          : ${params.tag}"
 log.info "Log directory                    : ${logdir}"
@@ -279,10 +283,11 @@ process report {
   file("rms_report.html")
 
   script:
-  def runid_arg = params.runid ? " --runid='${params.runid}'" : ''
-  def tag_arg   = params.tag   ? " --tag='${params.tag}'"     : ''
+  def species_arg = params.species ? " --species='${params.species}'" : ''
+  def runid_arg   = params.runid   ? " --runid='${params.runid}'"     : ''
+  def tag_arg     = params.tag     ? " --tag='${params.tag}'"         : ''
   """
-  Rscript ${baseDir}/Rscripts/QC/generate_report.R .${runid_arg}${tag_arg}
+  Rscript ${baseDir}/Rscripts/QC/generate_report.R .${species_arg}${runid_arg}${tag_arg}
   """
 }
 
@@ -329,6 +334,7 @@ def helpMessage() {
   log.info "--samtoolsoutput     FLAG   Export unique BAM files                    Optional (false)"
   log.info ""
   log.info "--split              FLAG   Split count files by RNA                   Optional (false)"
+  log.info "--species            STR    Species shown in the QC report header      Optional (set by ref profile)"
   log.info "--runid              STR    Run id shown in the QC report header       Optional (none)"
   log.info "--tag                STR    Free-text note shown in the report header  Optional (none)"
   log.info "--scheduler          STR    Job scheduler                              Optional (slurm)"

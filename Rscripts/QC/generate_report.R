@@ -18,8 +18,9 @@ args <- commandArgs(trailing = TRUE)
 datadir <- as.character(args[1])
 
 # Optional run annotation; left as NULL (silent in the report) when unset.
-run_id  <- get_option(args, "--runid",  dft = NULL)
-run_tag <- get_option(args, "--tag",    dft = NULL)
+species <- get_option(args, "--species", dft = NULL)
+run_id  <- get_option(args, "--runid",   dft = NULL)
+run_tag <- get_option(args, "--tag",     dft = NULL)
 
 message(paste("installation directory :", script_dir))
 message(paste("data directory :", normalizePath(datadir)))
@@ -57,5 +58,5 @@ rmarkdown::render(
   output_file = "rms_report.html",
   output_dir = getwd(),
   intermediates_dir = getwd(),
-  params = list(run_id = run_id, run_tag = run_tag)
+  params = list(species = species, run_id = run_id, run_tag = run_tag)
 )
