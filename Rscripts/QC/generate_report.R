@@ -1,6 +1,6 @@
 get_option <- function(args, opt, dft=NA) {
   ok <- grepl(paste0("^", opt, "="), args)
-  if (any(ok)) strsplit(head(args[ok], 1), "=")[[1]][2]
+  if (any(ok)) sub(paste0("^", opt, "="), "", head(args[ok], 1))
   else dft
 }
 
@@ -16,6 +16,10 @@ library(pheatmap)
 
 args <- commandArgs(trailing = TRUE)
 datadir <- as.character(args[1])
+
+# Optional run annotation; left as NULL (silent in the report) when unset.
+run_id  <- get_option(args, "--runid",  dft = NULL)
+run_tag <- get_option(args, "--tag",    dft = NULL)
 
 message(paste("installation directory :", script_dir))
 message(paste("data directory :", normalizePath(datadir)))
@@ -52,5 +56,6 @@ rmarkdown::render(
   file.path(script_dir, "template.rmd"),
   output_file = "rms_report.html",
   output_dir = getwd(),
-  intermediates_dir = getwd()
+  intermediates_dir = getwd(),
+  params = list(run_id = run_id, run_tag = run_tag)
 )
