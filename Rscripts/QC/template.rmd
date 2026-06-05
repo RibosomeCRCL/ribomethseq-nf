@@ -1,7 +1,7 @@
 ---
 title: "RiboMethSeq — Quality control report"
 subtitle: "Read end counts at all genomic positions"
-date: "`r format(Sys.time(), '%x | %X %Z')`"
+date: "`r format(Sys.time(), '%x')`"
 output:
   html_document:
     theme:
@@ -38,6 +38,7 @@ n_refs      <- nrow(reference_rna_tbl)
 /* --- Headings: tone down the default flatly sizes, keep h1>h2>h3 --- */
 h1.title    { font-size: 1.9rem !important; font-weight: 600; }
 .subtitle   { font-size: 1.05rem !important; color: #6b7682; }
+.date       { font-size: 0.9rem !important; font-weight: 400; color: #6b7682; }
 h1:not(.title) {
   font-size: 1.55rem !important;
   color: #2c7fb8 !important;
@@ -93,7 +94,39 @@ table thead th {
 }
 table tbody tr:nth-child(even) { background-color: #fafbfc !important; }
 table tbody tr:hover { background-color: #eef2f6 !important; }
+
+/* --- Collapsible TOC: toggle button + hidden state --- */
+#toc-toggle {
+  position: fixed; top: 0.6rem; left: 0.6rem; z-index: 1050;
+  border: 1px solid #d4dae0; background: #fff; color: #2c7fb8;
+  border-radius: 6px; padding: 0.1rem 0.55rem; font-size: 1.15rem;
+  line-height: 1.5; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+#toc-toggle:hover { background: #eef4fa; }
+body.toc-hidden #TOC { display: none !important; }
+/* leave room for the top-left button once the content spans full width */
+body.toc-hidden .toc-content { padding-left: 2.6rem; }
 </style>
+
+<button id="toc-toggle" title="Afficher / masquer le sommaire" aria-label="Toggle table of contents">☰</button>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var toc = document.getElementById("TOC");
+  var btn = document.getElementById("toc-toggle");
+  if (!toc || !btn) return;
+  var tocCol  = toc.closest("[class*='col-']");
+  var content = document.querySelector(".toc-content");
+  var savedCls = content ? content.className : null;
+  btn.addEventListener("click", function () {
+    var hidden = document.body.classList.toggle("toc-hidden");
+    if (tocCol)  tocCol.style.display = hidden ? "none" : "";
+    if (content) content.className = hidden
+      ? "toc-content col-xs-12 col-sm-12 col-md-12"
+      : savedCls;
+  });
+});
+</script>
 
 # General information
 
