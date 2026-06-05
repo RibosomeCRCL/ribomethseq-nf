@@ -34,17 +34,23 @@ fcount_data  <- lapply(fcount_list, read.csv, sep = "\t", header = FALSE)
 names(fcount_data) <- sub('.5_counts.csv', '', basename(fcount_list))
 #fcount_matrix <- merge_counts(fcount_data, rna_col, position_col, count_col)
 fcount_matrix <-
-  do.call('cbind',
-           lapply(names(fcount_data), function(name) {
-             tab <- fcount_data[[name]]
-             rownames(tab) <- paste0(tab[,1],tab[,2])
-             tab <- tab[,3,drop=FALSE]
-             colnames(tab) <- name
-             tab
-           })
-        )
+  do.call(
+    'cbind',
+    lapply(names(fcount_data), function(name) {
+      tab <- fcount_data[[name]]
+      rownames(tab) <- paste0(tab[, 1], tab[, 2])
+      tab <- tab[, 3, drop = FALSE]
+      colnames(tab) <- name
+      tab
+    })
+  )
 
 ###
 ### render report
 ###
-rmarkdown::render(file.path(script_dir, "template.rmd"), output_file = "rms_report.html", output_dir = getwd(), intermediates_dir = getwd())
+rmarkdown::render(
+  file.path(script_dir, "template.rmd"),
+  output_file = "rms_report.html",
+  output_dir = getwd(),
+  intermediates_dir = getwd()
+)
