@@ -107,16 +107,6 @@ kable(
 )
 ```
 
-<div class="alert alert-info" role="alert">
-Each reference RNA is analysed across **all** its genomic positions. The table
-below lists the references included in this run, grouped by type
-(**rRNA** first, **snRNA** last).
-</div>
-
-```{r reference-table}
-kable(reference_rna_tbl, row.names = FALSE, align = c("l", "l", "r"))
-```
-
 # Coverage
 
 The coverage corresponds to the number of end read counts at each individual genomic position.
@@ -179,6 +169,18 @@ putative outliers.
 
 ```{r}
 plot_coa(fcount_matrix)
+```
+
+
+# Reference RNAs
+
+<div class="alert alert-info" role="alert">
+Each reference RNA is analysed across **all** its genomic positions. The table
+below lists the references included in this run, grouped by type.
+</div>
+
+```{r reference-table}
+kable(reference_rna_tbl, row.names = FALSE, align = c("l", "l", "r"))
 ```
 
 <hr>
